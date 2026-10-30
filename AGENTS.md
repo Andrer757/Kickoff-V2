@@ -5,8 +5,8 @@ Kickoff is a deterministic CLI project scaffolding tool and Gradle quality plugi
 
 ## Monorepo Subprojects
 - `:kickoff-cli`: Standalone CLI application built with Kotlin 2.0.21 and Clikt. Generates multi-module Android projects from uncompressed templates with machine-readable `--json` output.
-- `:quality-verifier`: Standalone Gradle plugin (`pt.simdea.quality-verifier`) bundling Detekt (with Compose rules), Spotless/Ktlint, Android Lint, and Kover.
-- `templates/now-in-android`: Uncompressed, git-tracked template featuring 12 modules (`:app`, `:core:*`, `:feature:home`), `build-logic` convention plugins, and version catalog. Absorbs ADAL's core utilities (connectivity, analytics, permissions, common).
+- `:quality-verifier`: Standalone Gradle plugin (`pt.andrer757.quality-verifier`) bundling Detekt (with Compose rules), Spotless/Ktlint, Android Lint, and Kover.
+- `templates/now-in-android`: Uncompressed, git-tracked template featuring 12 modules (`:app`, `:core:*`, `:feature:home`), `build-logic` convention plugins, and version catalog.
 
 ## Development Guidelines
 - **Build System**: Gradle 8.12 (`./gradlew build` / `./gradlew test`)

@@ -1,4 +1,4 @@
-package pt.simdea.kickoff.cli
+package pt.andrer757.kickoff.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.main
@@ -10,9 +10,9 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.int
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import pt.simdea.kickoff.generator.ProjectGenerator
-import pt.simdea.kickoff.model.GenerationResult
-import pt.simdea.kickoff.model.ProjectConfig
+import pt.andrer757.kickoff.generator.ProjectGenerator
+import pt.andrer757.kickoff.model.GenerationResult
+import pt.andrer757.kickoff.model.ProjectConfig
 import java.io.File
 import kotlin.system.exitProcess
 

@@ -2,7 +2,7 @@ plugins {
     `kotlin-dsl`
 }
 
-group = "pt.simdea.kickoff.buildlogic"
+group = "pt.andrer757.kickoff.buildlogic"
 
 dependencies {
     compileOnly(libs.android.gradlePlugin)

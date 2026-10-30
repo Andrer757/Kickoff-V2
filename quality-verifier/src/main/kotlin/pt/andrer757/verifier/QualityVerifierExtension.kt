@@ -1,4 +1,4 @@
-package pt.simdea.verifier
+package pt.andrer757.verifier
 
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory

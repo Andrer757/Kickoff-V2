@@ -1,7 +1,7 @@
-package pt.simdea.kickoff.generator
+package pt.andrer757.kickoff.generator
 
-import pt.simdea.kickoff.model.GenerationResult
-import pt.simdea.kickoff.model.ProjectConfig
+import pt.andrer757.kickoff.model.GenerationResult
+import pt.andrer757.kickoff.model.ProjectConfig
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption

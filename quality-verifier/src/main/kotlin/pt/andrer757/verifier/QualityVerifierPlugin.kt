@@ -1,4 +1,4 @@
-package pt.simdea.verifier
+package pt.andrer757.verifier
 
 import com.diffplug.gradle.spotless.SpotlessExtension
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension

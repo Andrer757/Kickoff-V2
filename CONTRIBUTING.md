@@ -45,7 +45,7 @@ Thank you for your interest in contributing to **Kickoff**! As an open-source pr
 Kickoff is a multi-project Gradle monorepo:
 
 - **`:kickoff-cli`**: Standalone CLI application built with Kotlin 2.0.21 and Clikt 5.
-- **`:quality-verifier`**: Standalone Gradle plugin (`pt.simdea.quality-verifier`) that bundles Detekt (with Compose rules), Spotless/Ktlint, Android Lint, and Kover.
+- **`:quality-verifier`**: Standalone Gradle plugin (`pt.andrer757.quality-verifier`) that bundles Detekt (with Compose rules), Spotless/Ktlint, Android Lint, and Kover.
 - **`templates/now-in-android`**: Uncompressed, git-tracked template for the generated Android application and AI swarm.
 - **`.agents/skills/`**: Domain skill packs for AI coding assistants.
 

@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set("pt.simdea.kickoff.cli.MainKt")
+    mainClass.set("pt.andrer757.kickoff.cli.MainKt")
 }
 
 dependencies {

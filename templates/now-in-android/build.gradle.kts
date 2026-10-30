@@ -11,5 +11,5 @@ plugins {
 }
 
 allprojects {
-    apply(plugin = "pt.simdea.quality-verifier")
+    apply(plugin = "pt.andrer757.quality-verifier")
 }

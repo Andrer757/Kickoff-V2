@@ -1,6 +1,6 @@
 # Architecture Deep-Dive
 
-This document details the architectural design of **Kickoff**, including the internal generator engine, the multi-module Now-in-Android template, and the absorbed ADAL core modules.
+This document details the architectural design of **Kickoff**, including the internal generator engine and the multi-module Now-in-Android template.
 
 ---
 
@@ -27,7 +27,7 @@ graph TD
 | Subproject | Responsibility | Technologies |
 |---|---|---|
 | `:kickoff-cli` | Command-line parser, project token replacer, and directory remapper | Kotlin 2.0.21, Clikt 5, Kotlinx Serialization |
-| `:quality-verifier` | Gradle static analysis plugin (`pt.simdea.quality-verifier`) | Detekt (Compose rules), Spotless (Ktlint), Android Lint, Kover |
+| `:quality-verifier` | Gradle static analysis plugin (`pt.andrer757.quality-verifier`) | Detekt (Compose rules), Spotless (Ktlint), Android Lint, Kover |
 | `templates/now-in-android` | Uncompressed, git-tracked production Android template | AGP 8.8, Compose M3, Hilt, Room, Retrofit |
 
 ---
@@ -76,21 +76,16 @@ graph TD
 
 ---
 
-## 3. Absorbed ADAL Core Modules
+## 3. Core Capability Modules
 
-Kickoff absorbs the most valuable, battle-tested utilities from **ADAL (Android Development Acceleration Library)**, rewritten in pure Kotlin and Jetpack Compose:
+Kickoff provides essential foundation utilities written in pure Kotlin and Jetpack Compose:
 
-| Original ADAL Module | Modernized Kickoff Module | Modern Implementation Pattern |
-|---|---|---|
-| `adal-connectivity` | `:core:connectivity` | `NetworkMonitor.isOnline` emitting a `Flow<Boolean>` via `ConnectivityManager.NetworkCallback` and `callbackFlow`. Injected via Hilt. |
-| `adal-analytics` | `:core:analytics` | Typed `AnalyticsHelper` contract with `AnalyticsEvent(type, properties)`. Includes `LoggingAnalyticsHelper` default, easily swapped with Firebase or Mixpanel. |
-| `adal-permissions` | `:core:permissions` | Declarative `rememberPermissionLauncher` composable wrapping `ActivityResultContracts.RequestPermission` with rationale callbacks. |
-| `adal-utils` | `:core:common` | Clean Architecture `AppResult<T>` sealed hierarchy, `@Dispatcher(AppDispatchers.IO)` qualifiers, and Coroutine extensions. |
-
-### Obsolete ADAL Modules Purged:
-- `adal-adapters` (replaced by Compose `LazyColumn` / `LazyRow`).
-- `adal-fragments` & `adal-dialogs` (replaced by Composable functions and Compose Dialogs).
-- `adal-bus` (replaced by Kotlin Coroutines `SharedFlow` and `StateFlow`).
+| Module | Implementation Pattern |
+|---|---|
+| `:core:connectivity` | `NetworkMonitor.isOnline` emitting a `Flow<Boolean>` via `ConnectivityManager.NetworkCallback` and `callbackFlow`. Injected via Hilt. |
+| `:core:analytics` | Typed `AnalyticsHelper` contract with `AnalyticsEvent(type, properties)`. Includes `LoggingAnalyticsHelper` default, easily swapped with Firebase or Mixpanel. |
+| `:core:permissions` | Declarative `rememberPermissionLauncher` composable wrapping `ActivityResultContracts.RequestPermission` with rationale callbacks. |
+| `:core:common` | Clean Architecture `AppResult<T>` sealed hierarchy, `@Dispatcher(AppDispatchers.IO)` qualifiers, and Coroutine extensions. |
 
 ---
 

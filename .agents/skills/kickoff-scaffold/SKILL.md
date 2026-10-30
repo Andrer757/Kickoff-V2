@@ -104,7 +104,7 @@ Every generated project includes:
 4. **Feature Modules**:
    - `:feature:home`: Working MVI Compose screen (`HomeScreen`, `HomeViewModel`, Type-safe route).
 5. **Quality Verification**:
-   - Pre-configured with `pt.simdea.quality-verifier` running Detekt (Compose rules), Spotless (Ktlint), Android Lint, and Kover on `./gradlew check`.
+   - Pre-configured with `pt.andrer757.quality-verifier` running Detekt (Compose rules), Spotless (Ktlint), Android Lint, and Kover on `./gradlew check`.
 
 ---
 

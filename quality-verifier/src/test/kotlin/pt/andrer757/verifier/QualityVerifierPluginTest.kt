@@ -1,4 +1,4 @@
-package pt.simdea.verifier
+package pt.andrer757.verifier
 
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.Test
@@ -10,7 +10,7 @@ class QualityVerifierPluginTest {
     @Test
     fun `plugin registers extension successfully`() {
         val project = ProjectBuilder.builder().build()
-        project.plugins.apply("pt.simdea.quality-verifier")
+        project.plugins.apply("pt.andrer757.quality-verifier")
 
         val extension = project.extensions.findByType(QualityVerifierExtension::class.java)
         assertNotNull(extension)

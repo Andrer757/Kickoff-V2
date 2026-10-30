@@ -10,7 +10,7 @@ Scaffolded projects don't just ship with code—they come equipped with an integ
 
 ## Documentation Index
 
-- 📖 [**Architecture Deep-Dive**](docs/ARCHITECTURE.md): Complete module topology, Clean Architecture rules, and absorbed ADAL core modules.
+- 📖 [**Architecture Deep-Dive**](docs/ARCHITECTURE.md): Complete module topology and Clean Architecture rules.
 - 🤖 [**AI Agent Kit**](docs/AI_AGENT_KIT.md): Catalog of 16 specialized agents, 25 atomic skills, cross-IDE setup, and dependency scripts.
 - 🛡️ [**Quality Verifier Plugin**](docs/QUALITY_VERIFIER.md): Detekt (Compose rules), Spotless (Ktlint), Android Lint, and Kover configuration.
 - 🤝 [**Contributing Guide**](CONTRIBUTING.md): How to build, test, and contribute to Kickoff as an open-source project.
@@ -25,13 +25,13 @@ Kickoff unifies three mature Android engineering foundations into a single moder
 kickoff-my/
 ├── kickoff                              # Root wrapper script for the CLI generator
 ├── kickoff-cli/                         # Standalone CLI application (Kotlin 2.0.21 + Clikt 5)
-├── quality-verifier/                    # Standalone Gradle plugin (pt.simdea.quality-verifier)
+├── quality-verifier/                    # Standalone Gradle plugin (pt.andrer757.quality-verifier)
 ├── templates/
 │   └── now-in-android/                  # Uncompressed multi-module template with AI kit
 │       ├── build-logic/                 # Gradle convention plugins
 │       ├── gradle/libs.versions.toml    # Centralized version catalog
 │       ├── app/                         # Application entrypoint & navigation
-│       ├── core/                        # Core capability modules (ADAL absorbed)
+│       ├── core/                        # Core capability modules
 │       ├── feature/                     # Feature modules (:feature:home)
 │       ├── .github/                     # GitHub Copilot agents, skills & governance
 │       ├── .claude/                     # Claude Code agents & skills

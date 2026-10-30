@@ -1,6 +1,6 @@
 # Quality Verifier Gradle Plugin
 
-The `pt.simdea.quality-verifier` Gradle plugin is a standalone static code analysis suite built directly into Kickoff. It automates and bundles essential quality tools for modern Android and Kotlin applications.
+The `pt.andrer757.quality-verifier` Gradle plugin is a standalone static code analysis suite built directly into Kickoff. It automates and bundles essential quality tools for modern Android and Kotlin applications.
 
 ---
 
@@ -21,7 +21,7 @@ In your root or module `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("pt.simdea.quality-verifier") version "1.0.0-SNAPSHOT"
+    id("pt.andrer757.quality-verifier") version "1.0.0-SNAPSHOT"
 }
 ```
 
@@ -29,7 +29,7 @@ In the Kickoff Now-in-Android template, the plugin is applied globally across al
 
 ```kotlin
 allprojects {
-    apply(plugin = "pt.simdea.quality-verifier")
+    apply(plugin = "pt.andrer757.quality-verifier")
 }
 ```
 

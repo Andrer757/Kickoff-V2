@@ -1,4 +1,4 @@
-package pt.simdea.kickoff.model
+package pt.andrer757.kickoff.model
 
 import kotlinx.serialization.Serializable
 

@@ -4,7 +4,7 @@ plugins {
 }
 
 allprojects {
-    group = "pt.simdea.kickoff"
+    group = "pt.andrer757.kickoff"
     version = "1.0.0-SNAPSHOT"
 
     repositories {

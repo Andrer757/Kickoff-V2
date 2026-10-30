@@ -1,7 +1,7 @@
-package pt.simdea.kickoff
+package pt.andrer757.kickoff
 
-import pt.simdea.kickoff.generator.ProjectGenerator
-import pt.simdea.kickoff.model.ProjectConfig
+import pt.andrer757.kickoff.generator.ProjectGenerator
+import pt.andrer757.kickoff.model.ProjectConfig
 import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test

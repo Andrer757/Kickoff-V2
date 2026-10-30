@@ -7,8 +7,8 @@ plugins {
 gradlePlugin {
     plugins {
         create("qualityVerifier") {
-            id = "pt.simdea.quality-verifier"
-            implementationClass = "pt.simdea.verifier.QualityVerifierPlugin"
+            id = "pt.andrer757.quality-verifier"
+            implementationClass = "pt.andrer757.verifier.QualityVerifierPlugin"
             displayName = "Android Quality Verifier"
             description = "Static analysis plugin bundling Detekt (with Compose rules), Spotless/Ktlint, Android Lint, and Kover."
         }
