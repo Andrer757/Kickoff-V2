@@ -1,0 +1,28 @@
+schema_version: 1
+platform: android
+description: >
+  Android Architecture Constraint Contract (ACC) registry.
+  Managed by LeadAndroidAgent. AndroidArchitectAgent authors entries.
+  AndroidProgrammer must not proceed without an APPROVED acc_id for STRUCTURAL scopes.
+
+entries: []
+
+# Template for new entries:
+#
+# - acc_id: AND-ACC-YYYY-NNN
+#   title: "<short description>"
+#   scope: STRUCTURAL
+#   date: "YYYY-MM-DD"
+#   status: APPROVED | PENDING | REJECTED
+#   author: AndroidArchitectAgent
+#   lead_approval: APPROVED | PENDING
+#   summary: >
+#     <Concise summary (<= 30 lines): what changes, why, and which modules are affected.>
+#   affected_modules:
+#     - :core:<module>
+#     - :feature:<module>
+#   hilt_impact: none | scope-change | new-binding | multi-binding
+#   invariants_verified:
+#     - domain_no_android_imports: true | false | N/A
+#     - no_cross_layer_data_leak: true | false | N/A
+#     - fake_contract_maintained: true | false | N/A

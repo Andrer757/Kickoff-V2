@@ -1,0 +1,41 @@
+build:
+  maxIssues: 0
+
+style:
+  MaxLineLength:
+    active: false
+  MagicNumber:
+    active: false
+  UnusedPrivateMember:
+    active: true
+    allowedNames: '(_|preview.*)'
+
+naming:
+  FunctionNaming:
+    active: true
+    functionPattern: '([a-z][a-zA-Z0-9]*)|([A-Z][a-zA-Z0-9]*)' # Allow PascalCase for @Composable functions
+  TopLevelPropertyNaming:
+    active: false
+
+complexity:
+  LongParameterList:
+    functionThreshold: 10 # Allow Composable functions with multiple parameters
+    constructorThreshold: 10
+
+Compose:
+  ComposableNaming:
+    active: true
+  ModifierNaming:
+    active: true
+  ModifierNotUsedAtRoot:
+    active: true
+  MultipleEmitters:
+    active: true
+  MutableStateParam:
+    active: true
+  ParameterOrder:
+    active: true
+  PreviewPublic:
+    active: false
+  RememberMissing:
+    active: true

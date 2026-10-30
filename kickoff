@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -e
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+BIN="$DIR/kickoff-cli/build/install/kickoff-cli/bin/kickoff-cli"
+
+if [ -z "$JAVA_HOME" ] && [ -d "$HOME/.jdks/temurin-21" ]; then
+    export JAVA_HOME="$HOME/.jdks/temurin-21"
+fi
+
+if [ "$1" = "--rebuild" ]; then
+    shift
+    "$DIR/gradlew" -p "$DIR" :quality-verifier:publishToMavenLocal :kickoff-cli:installDist -q
+elif [ ! -f "$BIN" ]; then
+    "$DIR/gradlew" -p "$DIR" :quality-verifier:publishToMavenLocal :kickoff-cli:installDist -q
+fi
+
+exec "$BIN" "$@"
