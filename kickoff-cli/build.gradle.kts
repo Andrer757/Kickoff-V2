@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set("pt.andrer757.kickoff.cli.MainKt")
+    mainClass.set("eu.andrer757.kickoff.cli.MainKt")
 }
 
 dependencies {

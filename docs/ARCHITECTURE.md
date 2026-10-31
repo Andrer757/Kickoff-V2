@@ -31,7 +31,7 @@ graph TD
 | Subproject | Responsibility | Technologies |
 |---|---|---|
 | `:kickoff-cli` | Command-line parser, project token replacer, AI synthesizer, Day-2 commands, and stdio MCP server | Kotlin 2.0.21, Clikt 5, Kotlinx Serialization |
-| `:quality-verifier` | Gradle static analysis and Clean Architecture verification plugin (`pt.andrer757.quality-verifier`) | AGP 8.8 CommonExtension, Detekt (Compose rules), Spotless (Ktlint), Android Lint, Kover |
+| `:quality-verifier` | Gradle static analysis and Clean Architecture verification plugin (`eu.andrer757.quality-verifier`) | AGP 8.8 CommonExtension, Detekt (Compose rules), Spotless (Ktlint), Android Lint, Kover |
 | `templates/now-in-android` | Uncompressed, git-tracked production Android App template with SSoT AI kit | AGP 8.8, Compose M3, Hilt, Room, Retrofit, DataStore |
 | `templates/android-sdk` | Uncompressed, git-tracked multi-module Android SDK + Sample App template | AGP 8.8, Compose M3, BCV (0.17.0), Dokka (2.0.0), Maven Publish |
 

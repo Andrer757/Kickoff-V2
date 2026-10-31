@@ -4,7 +4,7 @@ plugins {
 }
 
 allprojects {
-    group = "pt.andrer757.kickoff"
+    group = "eu.andrer757.kickoff"
     version = "1.0.0"
 
     repositories {

@@ -25,7 +25,7 @@ Kickoff unifies five mature Android engineering foundations into a single modern
 kickoff-my/
 ├── kickoff                              # Root wrapper script for the CLI generator
 ├── kickoff-cli/                         # Standalone CLI & MCP server (Kotlin 2.0.21 + Clikt 5)
-├── quality-verifier/                    # Standalone Gradle plugin (pt.andrer757.quality-verifier)
+├── quality-verifier/                    # Standalone Gradle plugin (eu.andrer757.quality-verifier)
 ├── templates/
 │   ├── now-in-android/                  # Multi-module App template (Now-in-Android)
 │   │   ├── build-logic/                 # Gradle convention plugins

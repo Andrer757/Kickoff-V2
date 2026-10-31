@@ -1,6 +1,6 @@
 # Quality Verifier Gradle Plugin
 
-The `pt.andrer757.quality-verifier` Gradle plugin is a standalone static code analysis and Clean Architecture verification suite built directly into Kickoff. It automates and bundles essential quality tools for modern Android and Kotlin applications.
+The `eu.andrer757.quality-verifier` Gradle plugin is a standalone static code analysis and Clean Architecture verification suite built directly into Kickoff. It automates and bundles essential quality tools for modern Android and Kotlin applications.
 
 ---
 
@@ -22,7 +22,7 @@ In your root or module `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("pt.andrer757.quality-verifier") version "1.0.0"
+    id("eu.andrer757.quality-verifier") version "1.0.0"
 }
 ```
 
@@ -30,7 +30,7 @@ In the Kickoff Now-in-Android and Android SDK templates, the plugin is applied g
 
 ```kotlin
 allprojects {
-    apply(plugin = "pt.andrer757.quality-verifier")
+    apply(plugin = "eu.andrer757.quality-verifier")
 }
 ```
 

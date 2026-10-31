@@ -82,4 +82,4 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 room = { id = "androidx.room", version.ref = "androidxRoom" }
-quality-verifier = { id = "pt.andrer757.quality-verifier", version.ref = "qualityVerifier" }
+quality-verifier = { id = "eu.andrer757.quality-verifier", version.ref = "qualityVerifier" }

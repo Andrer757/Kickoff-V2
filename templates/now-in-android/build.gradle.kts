@@ -11,5 +11,5 @@ plugins {
 }
 
 allprojects {
-    apply(plugin = "pt.andrer757.quality-verifier")
+    apply(plugin = "eu.andrer757.quality-verifier")
 }
