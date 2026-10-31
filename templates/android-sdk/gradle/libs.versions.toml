@@ -8,7 +8,7 @@ androidxLifecycle = "2.8.7"
 coroutine = "1.10.1"
 bcv = "0.17.0"
 dokka = "2.0.0"
-qualityVerifier = "1.0.0-SNAPSHOT"
+qualityVerifier = "1.0.0"
 junit5 = "5.11.4"
 turbine = "1.2.0"
 

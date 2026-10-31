@@ -2,6 +2,12 @@ plugins {
     `kotlin-dsl`
     `java-gradle-plugin`
     `maven-publish`
+    signing
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
 }
 
 gradlePlugin {
@@ -12,6 +18,56 @@ gradlePlugin {
             displayName = "Android Quality Verifier"
             description = "Static analysis plugin bundling Detekt (with Compose rules), Spotless/Ktlint, Android Lint, and Kover."
         }
+    }
+}
+
+publishing {
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            name.set("Android Quality Verifier")
+            description.set("Static analysis and Clean Architecture verification plugin bundling Detekt (with Compose rules), Spotless/Ktlint, Android Lint, and Kover.")
+            url.set("https://github.com/Andrer757/Kickoff-V2")
+            licenses {
+                license {
+                    name.set("The Apache Software License, Version 2.0")
+                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                }
+            }
+            developers {
+                developer {
+                    id.set("andrer757")
+                    name.set("André Santos")
+                    url.set("https://github.com/Andrer757")
+                }
+            }
+            scm {
+                connection.set("scm:git:git://github.com/Andrer757/Kickoff-V2.git")
+                developerConnection.set("scm:git:ssh://github.com:Andrer757/Kickoff-V2.git")
+                url.set("https://github.com/Andrer757/Kickoff-V2")
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "sonatypeCentral"
+            val releasesRepoUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+            val snapshotsRepoUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+            url = if (version.toString().endsWith("-SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
+            credentials {
+                username = findProperty("sonatypeUsername")?.toString() ?: System.getenv("SONATYPE_USERNAME")
+                password = findProperty("sonatypePassword")?.toString() ?: System.getenv("SONATYPE_PASSWORD")
+            }
+        }
+    }
+}
+
+signing {
+    val signingKey = findProperty("signingKey")?.toString() ?: System.getenv("SIGNING_KEY")
+    val signingPassword = findProperty("signingPassword")?.toString() ?: System.getenv("SIGNING_PASSWORD")
+    if (!signingKey.isNullOrBlank()) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign(publishing.publications)
     }
 }
 
