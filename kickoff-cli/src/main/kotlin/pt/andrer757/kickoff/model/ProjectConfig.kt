@@ -10,7 +10,9 @@ data class ProjectConfig(
     val templateDir: String = "templates/now-in-android",
     val minSdk: Int = 26,
     val targetSdk: Int = 35,
-    val aiEnvironments: Set<String> = setOf("all")
+    val aiEnvironments: Set<String> = setOf("all"),
+    val projectType: String = "app",
+    val gitInit: Boolean = true
 )
 
 @Serializable
@@ -20,6 +22,7 @@ data class GenerationResult(
     val projectPath: String? = null,
     val projectName: String? = null,
     val packageName: String? = null,
+    val projectType: String? = "app",
     val modules: List<String> = emptyList(),
     val aiEnvironments: List<String> = emptyList(),
     val entryPoints: Map<String, String> = emptyMap()

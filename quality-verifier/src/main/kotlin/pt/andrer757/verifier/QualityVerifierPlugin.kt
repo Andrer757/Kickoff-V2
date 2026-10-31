@@ -1,9 +1,12 @@
 package pt.andrer757.verifier
 
+import com.android.build.api.dsl.CommonExtension
 import com.diffplug.gradle.spotless.SpotlessExtension
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
+import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.TaskProvider
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
@@ -13,6 +16,10 @@ class QualityVerifierPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
         val extension = project.extensions.create("qualityVerifier", QualityVerifierExtension::class.java)
+
+        val verifyArchTask = project.tasks.register("verifyArchitecture", VerifyArchitectureTask::class.java) {
+            abortOnError.set(extension.abortOnError)
+        }
 
         project.afterEvaluate {
             if (extension.enableDetekt.get()) {
@@ -25,9 +32,9 @@ class QualityVerifierPlugin : Plugin<Project> {
                 configureLint(project, extension)
             }
             if (extension.enableKover.get()) {
-                configureKover(project)
+                configureKover(project, extension)
             }
-            wireCheckLifecycle(project, extension)
+            wireCheckLifecycle(project, extension, verifyArchTask)
         }
     }
 
@@ -77,13 +84,10 @@ class QualityVerifierPlugin : Plugin<Project> {
 
     private fun configureLint(project: Project, extension: QualityVerifierExtension) {
         val configureAndroidLint = {
-            val androidExt = project.extensions.findByName("android")
-            if (androidExt != null) {
-                try {
-                    val lintMethod = androidExt.javaClass.getMethod("getLint")
-                    val lintObj = lintMethod.invoke(androidExt)
-                    val setAbortOnError = lintObj.javaClass.getMethod("setAbortOnError", Boolean::class.java)
-                    setAbortOnError.invoke(lintObj, extension.abortOnError.get())
+            try {
+                val androidExt = project.extensions.findByType(CommonExtension::class.java)
+                if (androidExt != null) {
+                    androidExt.lint.abortOnError = extension.abortOnError.get()
 
                     val configFile = if (extension.lintConfigFile.isPresent) {
                         extension.lintConfigFile.get().asFile
@@ -91,12 +95,11 @@ class QualityVerifierPlugin : Plugin<Project> {
                         extractResource(project, "lint/conf-default.xml", "lint-config.xml")
                     }
                     if (configFile.exists()) {
-                        val setLintConfig = lintObj.javaClass.getMethod("setLintConfig", File::class.java)
-                        setLintConfig.invoke(lintObj, configFile)
+                        androidExt.lint.lintConfig = configFile
                     }
-                } catch (e: Exception) {
-                    project.logger.info("QualityVerifier: Android Lint configuration deferred or not available: ${e.message}")
                 }
+            } catch (e: Throwable) {
+                project.logger.info("QualityVerifier: Android Lint configuration deferred or skipped: ${e.message}")
             }
         }
 
@@ -108,17 +111,35 @@ class QualityVerifierPlugin : Plugin<Project> {
         }
     }
 
-    private fun configureKover(project: Project) {
+    private fun configureKover(project: Project, extension: QualityVerifierExtension) {
         project.pluginManager.apply("org.jetbrains.kotlinx.kover")
+        val minCov = extension.minCoveragePercent.getOrElse(0)
+        if (minCov > 0) {
+            val koverExt = project.extensions.findByType(KoverProjectExtension::class.java)
+            koverExt?.reports {
+                verify {
+                    rule {
+                        minBound(minCov)
+                    }
+                }
+            }
+        }
     }
 
-    private fun wireCheckLifecycle(project: Project, extension: QualityVerifierExtension) {
+    private fun wireCheckLifecycle(
+        project: Project,
+        extension: QualityVerifierExtension,
+        verifyArchTask: TaskProvider<VerifyArchitectureTask>
+    ) {
         project.tasks.findByName("check")?.let { checkTask ->
             if (extension.enableDetekt.get()) {
                 project.tasks.findByName("detekt")?.let { checkTask.dependsOn(it) }
             }
             if (extension.enableSpotless.get()) {
                 project.tasks.findByName("spotlessCheck")?.let { checkTask.dependsOn(it) }
+            }
+            if (extension.enableArchitectureCheck.get()) {
+                checkTask.dependsOn(verifyArchTask)
             }
         }
     }

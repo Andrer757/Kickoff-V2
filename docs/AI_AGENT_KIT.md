@@ -1,40 +1,81 @@
-# Kickoff AI Development Kit
+# Kickoff AI Development Kit & MCP Server
 
-Every project scaffolded by Kickoff can include a comprehensive **Multi-Agent AI Swarm** pre-aligned with Android Clean Architecture, Jetpack Compose, and Google's Now-in-Android design patterns.
+Every project scaffolded by Kickoff can include a comprehensive **Multi-Agent AI Swarm** pre-aligned with Android Clean Architecture, Jetpack Compose, Now-in-Android, and Android SDK design patterns, backed by a native **Model Context Protocol (MCP)** server.
 
 ---
 
-## 1. Supported AI Environments
+## 1. Single Source of Truth (SSoT) & Dynamic Synthesis
 
-Kickoff natively formats agents and skills for all major AI coding assistants:
+Rather than duplicating agent instructions across four different IDE formats in git, Kickoff maintains a **Single Source of Truth** inside `templates/now-in-android/.agents/`.
 
-| AI Tool | Directory in Scaffolded App | Configuration Format |
+When `./kickoff new ... --ai <env>` runs, `AiKitSynthesizer` dynamically compiles the canonical markdown specifications into IDE-native formats:
+
+| AI Tool | Scaffolded Directory | Dynamic Synthesis Behavior |
 |---|---|---|
-| **GitHub Copilot** | `.github/agents/`, `.github/skills/`, `.github/governance/` | `.agent.md` files with user-invocable tags |
-| **Claude Code** | `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` | `.md` files with Claude Code skill bindings |
-| **Cursor** | `.cursor/rules/`, `.agents/skills/` | Official `.mdc` rules with glob triggers |
-| **Antigravity / Generic** | `.agents/agents/`, `.agents/skills/` | Standard Markdown agent specifications |
+| **GitHub Copilot** | `.github/agents/`, `.github/skills/`, `.github/governance/` | Generates `.agent.md` files with VS Code tool bindings and `user-invocable: true` tags. |
+| **Claude Code** | `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` | Generates `.md` files with Claude Code tool bindings and settings schema. |
+| **Cursor** | `.cursor/rules/*.mdc`, `.agents/skills/` | Generates official `.mdc` rules with glob filters (`**/*.kt, **/*.kts`) and alwaysApply options. |
+| **Antigravity / Generic** | `.agents/agents/`, `.agents/skills/` | Standard cross-agent Markdown specifications. |
 
 ---
 
-## 2. The 16 Specialized AI Agents
+## 2. Model Context Protocol (MCP) Server (`kickoff mcp`)
 
-Kickoff's AI kit follows the **Separation of Concerns** principle: rather than relying on a single generalist prompt, it provides dedicated specialist agents:
+Kickoff includes a native stdio **JSON-RPC 2.0 MCP Server** built directly into the CLI executable. This allows AI assistants like Claude Desktop, Cursor, Antigravity, and Windsurf to execute scaffolding, module generation, and architecture checks as deterministic native tools.
+
+### Running the MCP Server
+```bash
+./kickoff mcp
+```
+
+### IDE Configuration
+
+#### Claude Desktop (`~/.config/Claude/claude_desktop_config.json`)
+```json
+{
+  "mcpServers": {
+    "kickoff": {
+      "command": "/absolute/path/to/kickoff-my/kickoff",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+#### Antigravity / Cursor
+Register `kickoff` with command `path/to/kickoff` and argument `mcp`.
+
+### Exposed Native Tools
+
+| Tool Name | Parameters | Description |
+|---|---|---|
+| `kickoff_scaffold_project` | `name`, `packageName`, `outputDir`, `projectType`, `minSdk`, `targetSdk`, `ai`, `gitInit` | Scaffolds a new Now-in-Android App (`app`) or Android SDK (`sdk`) project. |
+| `kickoff_add_feature` | `name`, `projectDir` | Scaffolds `:feature:<name>` with routes, ViewModel, screen, test, and wires NavHost and Gradle. |
+| `kickoff_add_module` | `name`, `type` (`core`, `library`, `compose`, `sdk`), `projectDir` | Scaffolds `:core:<name>` or `:sdk-<name>` with convention plugins, consumer rules, and tests. |
+| `kickoff_add_entity` | `name`, `fields`, `projectDir` | Scaffolds domain model, Room entity, DAO, and offline-first repository. |
+| `kickoff_arch_check` | `projectDir` | Runs fast static Clean Architecture verification on module boundaries. |
+| `kickoff_doctor` | `projectDir` | Runs environment diagnostics for JDK, Android SDK/API 35, and AI tools. |
+
+---
+
+## 3. The 16 Specialized AI Agents
+
+Kickoff's AI kit follows the **Separation of Concerns** principle with dedicated specialist agents:
 
 ### Core Architecture & Leadership
 - **`LeadAndroidAgent`**: The orchestrator and planner. Breaks down user requirements, tracks ACCs (Architecture Conformance Contracts), sequences tasks, and issues final acceptance verdicts.
 - **`AndroidArchitectAgent`**: Evaluates proposed changes, classifies scopes as `LOCAL` or `STRUCTURAL`, validates dependency directions, checks Hilt DI graph hygiene, and enforces Clean Architecture invariants.
 
 ### Implementation Specialists
-- **`AndroidProgrammer`**: The core implementation engine. Writes production Kotlin code across `:core:*` and `:feature:*` modules, scaffolding UseCases, Repositories, ViewModels, and Compose screens.
+- **`AndroidProgrammer`**: The core implementation engine. Writes production Kotlin code across `:core:*`, `:feature:*`, and `:sdk-*` modules, scaffolding UseCases, Repositories, ViewModels, and Compose screens.
 - **`AndroidComposeSpecialist`**: Dedicated to Jetpack Compose UI. Focuses on Composable functions, state hoisting, `@Stable`/`@Immutable` annotations, recomposition minimization, and Compose performance audits.
 - **`AndroidCoroutinesSpecialist`**: Focused on concurrency. Manages `StateFlow`, `SharedFlow`, structured concurrency scopes, dispatcher injection (`@Dispatcher(IO)`), and Turbine-based flow testing.
 
 ### Quality, Security & Guardianship
-- **`AndroidTestWriter`**: Authors deterministic unit, integration, and UI tests using JUnit 5, Turbine, and Fake repositories.
+- **`AndroidTestWriter`**: Authors deterministic unit, integration, and UI tests using JUnit 5, Turbine, and Fake repositories (`MainDispatcherRule`, `FakeUserRepository`, `FakeSdkClient`).
 - **`AndroidTestReviewer`**: Acts as an adversarial quality gate with veto authority. Audits tests for concurrency flakiness, missing edge cases, and architectural compliance before acceptance.
 - **`AndroidPrivacyGuardian`**: Audits code to prevent user data leaks, unauthorized permission requests, and hardcoded secrets.
-- **`AndroidSDKGuardian`**: Protects the stability and backward compatibility of core shared module interfaces.
+- **`AndroidSDKGuardian`**: Protects the stability, backward compatibility, and binary ABI of core shared module interfaces and SDK libraries (`explicitApi()`, BCV `apiCheck`/`apiDump`, zero-Hilt public surface).
 
 ### Code Review Suite
 - **`LeadCodeReviewAgent`**: Orchestrates deep code reviews across multiple investigative axes.
@@ -47,7 +88,7 @@ Kickoff's AI kit follows the **Separation of Concerns** principle: rather than r
 
 ---
 
-## 3. The 25 Atomic Architecture Skills
+## 4. The 25 Atomic Architecture Skills
 
 Agents load atomic, single-responsibility skills to keep their context windows focused and efficient:
 
@@ -62,7 +103,7 @@ Agents load atomic, single-responsibility skills to keep their context windows f
 
 ---
 
-## 4. Cross-Platform Setup Scripts
+## 5. Cross-Platform Setup Scripts
 
 Each generated project includes automated dependency setup scripts in `scripts/`:
 
@@ -82,24 +123,3 @@ cd <your-scaffolded-project>
 .\scripts\setup-ai.ps1
 ```
 - Automated PowerShell script performing equivalent dependency verification on Windows.
-
----
-
-## 5. How to Invoke Agents in Your IDE
-
-### GitHub Copilot (VS Code)
-1. Open the project in VS Code.
-2. Open Copilot Chat (`Ctrl+Alt+I` / `Cmd+Alt+I`).
-3. Type `@` to select an agent:
-   - `@LeadAndroidAgent I need to add a user authentication flow`
-   - `@AndroidComposeSpecialist Review this screen for recomposition leaks`
-
-### Claude Code
-1. Run `claude` from the project root.
-2. Claude Code automatically detects `.claude/agents/` and `.claude/skills/`.
-3. Prompt directly:
-   `Have AndroidArchitectAgent validate the new :feature:settings module boundaries.`
-
-### Cursor
-1. Cursor automatically reads `.cursor/rules/*.mdc`.
-2. As you edit Kotlin and Gradle files, Cursor applies the relevant architecture and Compose rules automatically.

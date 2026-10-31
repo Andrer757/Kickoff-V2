@@ -9,7 +9,7 @@ import java.nio.file.StandardCopyOption
 class ProjectGenerator {
 
     private val textExtensions = setOf(
-        "kt", "kts", "xml", "properties", "toml", "md", "gradle", "json", "yaml", "yml", "txt", "pro", "sh", "ps1", "mdc", "gitignore"
+        "kt", "kts", "xml", "properties", "toml", "md", "gradle", "json", "yaml", "yml", "txt", "pro", "sh", "ps1", "mdc", "gitignore", "api"
     )
 
     private val reservedKeywords = setOf(
@@ -46,6 +46,10 @@ class ProjectGenerator {
 
         if (config.targetSdk < config.minSdk) {
             return "targetSdk (${config.targetSdk}) cannot be less than minSdk (${config.minSdk})."
+        }
+
+        if (config.projectType !in setOf("app", "sdk")) {
+            return "Invalid project type '${config.projectType}'. Allowed values are: app, sdk."
         }
 
         val invalidAi = config.aiEnvironments.filter { it !in validAiEnvironments }
@@ -114,7 +118,16 @@ class ProjectGenerator {
                 if (relativePath.isEmpty()) return@forEach
 
                 val normalizedPath = relativePath.replace('\\', '/')
-                if (!shouldIncludePath(normalizedPath, selectedAi)) {
+                // AI directories and governance are handled by AiKitSynthesizer
+                if (normalizedPath.startsWith(".agents") ||
+                    normalizedPath.startsWith(".claude") ||
+                    normalizedPath.startsWith(".cursor") ||
+                    (normalizedPath.startsWith(".github") && !normalizedPath.startsWith(".github/workflows"))
+                ) {
+                    return@forEach
+                }
+
+                if (selectedAi.contains("none") && normalizedPath.startsWith("scripts/setup-ai")) {
                     return@forEach
                 }
 
@@ -151,17 +164,42 @@ class ProjectGenerator {
                 }
             }
 
-            val entryPoints = mapOf(
-                "application" to "app/src/main/kotlin/$packagePath/KickoffApplication.kt",
-                "mainActivity" to "app/src/main/kotlin/$packagePath/MainActivity.kt",
-                "homeScreen" to "feature/home/src/main/kotlin/$packagePath/feature/home/HomeScreen.kt"
-            )
+            // Synthesize AI Kit
+            val canonicalAgents = File(templateDir, ".agents").let {
+                if (it.exists()) it else File(templateDir.parentFile, "now-in-android/.agents")
+            }
+            if (canonicalAgents.exists()) {
+                AiKitSynthesizer().synthesize(canonicalAgents, targetDir, selectedAi)
+            }
+
+            // Embed quality-verifier in composite build (build-logic/quality-verifier) for zero mavenLocal reliance
+            embedQualityVerifier(templateDir, targetDir)
+
+            // Git Initialization
+            if (config.gitInit) {
+                initializeGitRepository(targetDir)
+            }
+
+            val entryPoints = if (config.projectType == "sdk") {
+                mapOf(
+                    "sdkClient" to "sdk-core/src/main/kotlin/$packagePath/sdk/core/SdkClient.kt",
+                    "sdkUiComponent" to "sdk-ui/src/main/kotlin/$packagePath/sdk/ui/SdkStatusBanner.kt",
+                    "sampleActivity" to "sample/src/main/kotlin/$packagePath/sample/SampleMainActivity.kt"
+                )
+            } else {
+                mapOf(
+                    "application" to "app/src/main/kotlin/$packagePath/KickoffApplication.kt",
+                    "mainActivity" to "app/src/main/kotlin/$packagePath/MainActivity.kt",
+                    "homeScreen" to "feature/home/src/main/kotlin/$packagePath/feature/home/HomeScreen.kt"
+                )
+            }
 
             return GenerationResult(
                 status = "success",
                 projectPath = targetDir.absolutePath,
                 projectName = config.projectName,
                 packageName = config.packageName,
+                projectType = config.projectType,
                 modules = modules.sorted(),
                 aiEnvironments = selectedAi.sorted(),
                 entryPoints = entryPoints
@@ -177,40 +215,60 @@ class ProjectGenerator {
         }
     }
 
-    private fun shouldIncludePath(path: String, selectedAi: Set<String>): Boolean {
-        if (selectedAi.contains("none")) {
-            if (path.startsWith(".github") ||
-                path.startsWith(".claude") ||
-                path.startsWith(".cursor") ||
-                path.startsWith(".agents") ||
-                path.startsWith("scripts/setup-ai")
-            ) {
-                return false
+    private fun embedQualityVerifier(templateDir: File, targetDir: File) {
+        val repoRoot = templateDir.parentFile?.parentFile
+        val qvSource = listOfNotNull(
+            repoRoot?.let { File(it, "quality-verifier") },
+            File(System.getProperty("user.dir"), "quality-verifier")
+        ).firstOrNull { it.exists() && File(it, "build.gradle.kts").exists() } ?: return
+
+        val targetQvDir = File(targetDir, "build-logic/quality-verifier")
+        targetQvDir.mkdirs()
+
+        File(qvSource, "build.gradle.kts").copyTo(File(targetQvDir, "build.gradle.kts"), overwrite = true)
+        val srcMain = File(qvSource, "src/main")
+        if (srcMain.exists()) {
+            srcMain.copyRecursively(File(targetQvDir, "src/main"), overwrite = true)
+        }
+
+        File(targetQvDir, "settings.gradle.kts").writeText(
+            """
+            dependencyResolutionManagement {
+                repositories {
+                    google()
+                    mavenCentral()
+                    gradlePluginPortal()
+                }
             }
-            return true
-        }
 
-        if (selectedAi.contains("all")) {
-            return true
-        }
+            rootProject.name = "quality-verifier"
+            """.trimIndent() + "\n",
+            Charsets.UTF_8
+        )
+    }
 
-        if (path.startsWith(".github")) {
-            return selectedAi.contains("copilot")
-        }
-        if (path.startsWith(".claude")) {
-            return selectedAi.contains("claude")
-        }
-        if (path.startsWith(".cursor")) {
-            return selectedAi.contains("cursor")
-        }
-        if (path.startsWith(".agents")) {
-            return selectedAi.contains("generic") || selectedAi.contains("cursor") || selectedAi.contains("antigravity")
-        }
-        if (path.startsWith("scripts/setup-ai")) {
-            return selectedAi.any { it in setOf("copilot", "claude", "cursor", "generic", "antigravity") }
-        }
+    private fun initializeGitRepository(targetDir: File) {
+        try {
+            ProcessBuilder("git", "init")
+                .directory(targetDir)
+                .redirectErrorStream(true)
+                .start()
+                .waitFor()
 
-        return true
+            ProcessBuilder("git", "add", ".")
+                .directory(targetDir)
+                .redirectErrorStream(true)
+                .start()
+                .waitFor()
+
+            ProcessBuilder("git", "commit", "-m", "chore: initial project scaffolded by Kickoff")
+                .directory(targetDir)
+                .redirectErrorStream(true)
+                .start()
+                .waitFor()
+        } catch (_: Exception) {
+            // Non-fatal if git is missing or restricted
+        }
     }
 
     private fun isTextFile(file: File): Boolean {
@@ -238,10 +296,15 @@ class ProjectGenerator {
             else -> config.projectName
         }
 
-        return content
+        val rawReplaced = content
             .replace("\${configs.projectName}", escapedProjectName)
-            .replace("\${configs.packageName}", config.packageName)
             .replace("\${configs.minSdk}", config.minSdk.toString())
             .replace("\${configs.targetSdk}", config.targetSdk.toString())
+
+        return if (ext == "api") {
+            rawReplaced.replace("\${configs.packageName}", config.packageName.replace('.', '/'))
+        } else {
+            rawReplaced.replace("\${configs.packageName}", config.packageName)
+        }
     }
 }

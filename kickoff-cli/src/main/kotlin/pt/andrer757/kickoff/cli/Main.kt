@@ -24,10 +24,12 @@ class NewCommand : CliktCommand(name = "new") {
     private val name by option("-n", "--name", help = "Project name").required()
     private val packageName by option("-p", "--package", help = "Application package name (e.g. com.example.app)").required()
     private val output by option("-o", "--output", help = "Target output directory").default("")
-    private val template by option("-t", "--template", help = "Path to template directory").default("templates/now-in-android")
+    private val template by option("-t", "--template", help = "Path to template directory").default("")
+    private val type by option("--type", help = "Project archetype: app (Now-in-Android), sdk (Android SDK + Sample)").default("app")
     private val minSdk by option("--min-sdk", help = "Minimum SDK API level").int().default(26)
     private val targetSdk by option("--target-sdk", help = "Target SDK API level").int().default(35)
     private val ai by option("--ai", help = "Target AI environment: copilot, claude, cursor, generic, antigravity, all, none (supports comma-separated)").default("all")
+    private val git by option("--git", help = "Initialize git repository").flag("--no-git", default = true)
     private val json by option("--json", help = "Output result as structured JSON").flag(default = false)
 
     private val jsonSerializer = Json { prettyPrint = true }
@@ -37,6 +39,14 @@ class NewCommand : CliktCommand(name = "new") {
             output
         } else {
             name.lowercase().replace(Regex("[^a-z0-9_-]"), "-")
+        }
+
+        val effectiveTemplate = if (template.isNotBlank()) {
+            template
+        } else if (type.lowercase() == "sdk") {
+            "templates/android-sdk"
+        } else {
+            "templates/now-in-android"
         }
 
         val aiSet = ai.lowercase()
@@ -49,10 +59,12 @@ class NewCommand : CliktCommand(name = "new") {
             projectName = name,
             packageName = packageName,
             outputDir = targetOutput,
-            templateDir = resolveTemplateDir(template),
+            templateDir = resolveTemplateDir(effectiveTemplate),
             minSdk = minSdk,
             targetSdk = targetSdk,
-            aiEnvironments = if (aiSet.isEmpty()) setOf("all") else aiSet
+            aiEnvironments = if (aiSet.isEmpty()) setOf("all") else aiSet,
+            projectType = type.lowercase(),
+            gitInit = git
         )
 
         val result = ProjectGenerator().generate(config)
@@ -107,7 +119,7 @@ class NewCommand : CliktCommand(name = "new") {
                     val bundledTemplate = File(installDir, path)
                     if (bundledTemplate.exists()) return bundledTemplate.absolutePath
 
-                    val repoTemplate = File(installDir, "../../templates/now-in-android").canonicalFile
+                    val repoTemplate = File(installDir, "../../$path").canonicalFile
                     if (repoTemplate.exists()) return repoTemplate.absolutePath
                 }
             }
@@ -119,6 +131,16 @@ class NewCommand : CliktCommand(name = "new") {
 
 fun main(args: Array<String>) {
     KickoffCommand()
-        .subcommands(NewCommand())
+        .subcommands(
+            NewCommand(),
+            AddCommand().subcommands(
+                AddFeatureCommand(),
+                AddModuleCommand(),
+                AddEntityCommand()
+            ),
+            ArchCheckCommand(),
+            DoctorCommand(),
+            McpCommand()
+        )
         .main(args)
 }

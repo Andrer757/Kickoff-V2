@@ -1,43 +1,47 @@
 # Kickoff
 
-> **Deterministic Android Scaffolding Engine, Multi-Module Compose Template & Multi-Agent AI Ecosystem**
+> **Deterministic Android Scaffolding Engine, Multi-Module Compose Templates, Day-2 Generators & AI MCP Platform**
 
-Kickoff is a deterministic developer and AI CLI tool designed to bootstrap production-ready Android applications following Google's **Now-in-Android** multi-module architecture, **Jetpack Compose (Material 3)**, **Hilt**, **Room**, **Retrofit**, and an automated static code analysis suite.
+Kickoff is a deterministic developer CLI and AI engineering platform designed to bootstrap and evolve production-grade Android applications and redistributable SDK libraries. It implements Google's **Now-in-Android** Clean Architecture, **Jetpack Compose (Material 3)**, **Hilt**, **Room**, **Retrofit**, Binary Compatibility Validator, and an integrated static code analysis suite.
 
-Scaffolded projects don't just ship with code—they come equipped with an integrated **AI Agent Swarm** pre-configured for **GitHub Copilot**, **Claude Code**, **Cursor**, and **Antigravity / Generic AI agents**.
+Scaffolded projects don't just ship with code—they come equipped with an integrated **AI Agent Swarm** dynamically synthesized for **GitHub Copilot**, **Claude Code**, **Cursor**, and **Antigravity / Generic AI agents**, backed by a native **Model Context Protocol (MCP)** server.
 
 ---
 
 ## Documentation Index
 
-- 📖 [**Architecture Deep-Dive**](docs/ARCHITECTURE.md): Complete module topology and Clean Architecture rules.
-- 🤖 [**AI Agent Kit**](docs/AI_AGENT_KIT.md): Catalog of 16 specialized agents, 25 atomic skills, cross-IDE setup, and dependency scripts.
-- 🛡️ [**Quality Verifier Plugin**](docs/QUALITY_VERIFIER.md): Detekt (Compose rules), Spotless (Ktlint), Android Lint, and Kover configuration.
+- 📖 [**Architecture Deep-Dive**](docs/ARCHITECTURE.md): Complete module topologies for both App (`now-in-android`) and SDK (`android-sdk`) archetypes.
+- 🤖 [**AI Agent Kit & MCP**](docs/AI_AGENT_KIT.md): Catalog of 16 specialized agents, 25 atomic skills, cross-IDE setup, and stdio MCP server.
+- 🛡️ [**Quality Verifier Plugin**](docs/QUALITY_VERIFIER.md): Detekt (Compose rules), Spotless (Ktlint), typed Android Lint, Architecture boundary verifier, and Kover.
 - 🤝 [**Contributing Guide**](CONTRIBUTING.md): How to build, test, and contribute to Kickoff as an open-source project.
 
 ---
 
 ## Monorepo Architecture
 
-Kickoff unifies three mature Android engineering foundations into a single modern monorepo:
+Kickoff unifies five mature Android engineering foundations into a single modern monorepo:
 
 ```
 kickoff-my/
 ├── kickoff                              # Root wrapper script for the CLI generator
-├── kickoff-cli/                         # Standalone CLI application (Kotlin 2.0.21 + Clikt 5)
+├── kickoff-cli/                         # Standalone CLI & MCP server (Kotlin 2.0.21 + Clikt 5)
 ├── quality-verifier/                    # Standalone Gradle plugin (pt.andrer757.quality-verifier)
 ├── templates/
-│   └── now-in-android/                  # Uncompressed multi-module template with AI kit
-│       ├── build-logic/                 # Gradle convention plugins
-│       ├── gradle/libs.versions.toml    # Centralized version catalog
-│       ├── app/                         # Application entrypoint & navigation
-│       ├── core/                        # Core capability modules
-│       ├── feature/                     # Feature modules (:feature:home)
-│       ├── .github/                     # GitHub Copilot agents, skills & governance
-│       ├── .claude/                     # Claude Code agents & skills
-│       ├── .cursor/                     # Cursor rules (*.mdc)
-│       ├── .agents/                     # Antigravity / Generic AI agents & skills
-│       └── scripts/                     # Cross-platform AI setup scripts (.sh, .ps1)
+│   ├── now-in-android/                  # Multi-module App template (Now-in-Android)
+│   │   ├── build-logic/                 # Gradle convention plugins
+│   │   ├── gradle/libs.versions.toml    # Centralized version catalog
+│   │   ├── app/                         # Application entrypoint & navigation
+│   │   ├── core/                        # Core capabilities (:core:data, :core:testing, :core:model, etc.)
+│   │   ├── feature/                     # Feature modules (:feature:home)
+│   │   ├── .agents/                     # Single Source of Truth (SSoT) for AI swarm
+│   │   └── scripts/                     # Cross-platform AI setup scripts (.sh, .ps1)
+│   └── android-sdk/                     # Multi-module Android SDK + Sample template
+│       ├── build-logic/                 # SdkLibrary, SdkCompose, SdkPublish convention plugins
+│       ├── sdk-core/                    # Headless engine (explicitApi, zero-Hilt, consumer ProGuard)
+│       ├── sdk-ui/                      # Compose UI components (@Immutable / @Stable)
+│       ├── sdk-testing/                 # Consumer test fakes & rules (FakeSdkClient)
+│       └── sample/                      # Showcase Compose application
+├── .github/workflows/                   # Monorepo CI & automated release workflows
 └── .agents/skills/kickoff-scaffold/     # AI Agent skill for invoking Kickoff
 ```
 
@@ -56,11 +60,22 @@ kickoff-my/
 ```
 
 ### 2. Scaffold a New Project
+
+#### Scaffold an Android Application (Default)
 ```bash
 ./kickoff new \
   --name "Crypto Tracker" \
   --package "com.example.cryptotracker" \
   --output "~/projects/crypto-tracker"
+```
+
+#### Scaffold a Redistributable Android SDK + Sample App
+```bash
+./kickoff new \
+  --name "Payment SDK" \
+  --package "com.example.paymentsdk" \
+  --type sdk \
+  --output "~/projects/payment-sdk"
 ```
 
 ### 3. Build & Verify Generated App
@@ -72,87 +87,102 @@ cd ~/projects/crypto-tracker
 
 ---
 
-## CLI Parameters & Options
+## Full CLI Command Suite
+
+Kickoff provides a full suite of commands for Day-1 scaffolding and Day-2 codebase evolution:
 
 ```
-Usage: kickoff new [<options>]
+Usage: kickoff [<options>] <command> [<args>]...
 
+Commands:
+  new          Scaffold a new Android App or SDK project
+  add          Add new features, modules, or database entities to an existing project
+  arch-check   Sub-100ms static Clean Architecture & SDK boundary verification
+  doctor       Diagnose developer environment, JDK, Android SDK, and AI tools
+  mcp          Run Kickoff as a Model Context Protocol (MCP) stdio server
+```
+
+### 1. `kickoff new`
+```
 Options:
   -n, --name=<text>      Project name (Required, e.g. "Fitness App")
   -p, --package=<text>   Application package name (Required, e.g. "com.example.fitness")
   -o, --output=<text>    Target output directory (Defaults to sanitized project name)
-  -t, --template=<text>  Path to custom template (Defaults to templates/now-in-android)
+  --type=<app|sdk>       Project archetype: app (Now-in-Android), sdk (Android SDK + Sample) (Default: app)
+  -t, --template=<text>  Path to custom template
   --min-sdk=<int>        Minimum SDK API level (Default: 26)
   --target-sdk=<int>     Target SDK API level (Default: 35)
-  --ai=<text>            Target AI environment: copilot, claude, cursor, generic, all, none
-                         (Default: all, supports comma-separated values)
+  --ai=<text>            Target AI environment: copilot, claude, cursor, generic, all, none (Default: all)
+  --git / --no-git       Initialize git repository with initial commit (Default: true)
   --json                 Output result as structured machine-readable JSON
-  -h, --help             Show help message and exit
 ```
 
-### Tailoring AI Environments (`--ai`)
+### 2. `kickoff add feature`
+Auto-generates a new feature module and wires it into `settings.gradle.kts`, `app/build.gradle.kts`, and `MainActivity.kt`'s `NavHost`:
+```bash
+./kickoff add feature --name settings
+```
 
-Developers and CI workflows can install only the AI configurations needed:
+### 3. `kickoff add module`
+Scaffolds a `:core:<name>` module in an App project or `:sdk-<name>` in an SDK project:
+```bash
+./kickoff add module --name analytics --type core
+./kickoff add module --name telemetry --type sdk
+```
 
-| Command | Installed AI Configurations |
-|---|---|
-| `./kickoff new ... --ai all` | *(Default)* Installs Copilot, Claude Code, Cursor, and Generic kits |
-| `./kickoff new ... --ai copilot` | Installs `.github/agents/`, `.github/skills/`, and governance |
-| `./kickoff new ... --ai claude` | Installs `.claude/agents/`, `.claude/skills/`, and settings |
-| `./kickoff new ... --ai cursor` | Installs `.cursor/rules/*.mdc` and `.agents/skills/` |
-| `./kickoff new ... --ai generic` | Installs `.agents/agents/` and `.agents/skills/` (Antigravity/Codex) |
-| `./kickoff new ... --ai claude,cursor` | Installs both Claude Code and Cursor environments |
-| `./kickoff new ... --ai none` | Scaffolds a clean Android project without any AI directories |
+### 4. `kickoff add entity`
+Scaffolds a domain model, Room `@Entity`, `@Dao`, and offline-first repository across `:core:model`, `:core:database`, and `:core:data`:
+```bash
+./kickoff add entity --name Article --fields "id:String,title:String,content:String"
+```
 
-### Machine-Readable Output (`--json`)
+### 5. `kickoff arch-check`
+Validates Clean Architecture module boundaries without needing a Gradle daemon:
+```bash
+./kickoff arch-check
+```
 
-Coding assistants (Antigravity, Claude Code, Cursor, Windsurf) can pass `--json` to parse generated project paths, modules, and entrypoints directly:
+### 6. `kickoff doctor`
+Diagnoses JDK, Android SDK, Gradle wrapper, and AI tools:
+```bash
+./kickoff doctor [--json]
+```
 
+### 7. `kickoff mcp`
+Launches the built-in stdio Model Context Protocol (MCP) server exposing tools directly to Claude Code, Cursor, Antigravity, and Windsurf:
+```bash
+./kickoff mcp
+```
+
+Configure in Claude Desktop / Cursor / Antigravity (`mcpServers`):
 ```json
 {
-  "status": "success",
-  "projectPath": "/home/user/projects/crypto-tracker",
-  "projectName": "Crypto Tracker",
-  "packageName": "com.example.cryptotracker",
-  "modules": [
-    ":app",
-    ":build-logic:convention",
-    ":core:analytics",
-    ":core:common",
-    ":core:connectivity",
-    ":core:database",
-    ":core:datastore",
-    ":core:designsystem",
-    ":core:model",
-    ":core:network",
-    ":core:permissions",
-    ":core:ui",
-    ":feature:home"
-  ],
-  "aiEnvironments": [
-    "all"
-  ],
-  "entryPoints": {
-    "application": "app/src/main/kotlin/com/example/cryptotracker/KickoffApplication.kt",
-    "mainActivity": "app/src/main/kotlin/com/example/cryptotracker/MainActivity.kt",
-    "homeScreen": "feature/home/src/main/kotlin/com/example/cryptotracker/feature/home/HomeScreen.kt"
+  "mcpServers": {
+    "kickoff": {
+      "command": "/path/to/kickoff-my/kickoff",
+      "args": ["mcp"]
+    }
   }
 }
 ```
 
 ---
 
-## Generated Android Project Architecture
+## Generated Architectures
 
-The scaffolded project strictly implements Google's **Now in Android** Clean Architecture guidelines:
+### 1. Now-in-Android Application Architecture (`--type app`)
+
+Scaffolded applications strictly follow Google's official **Now in Android** Clean Architecture design:
 
 ```mermaid
 graph TD
     App[":app (Root, Navigation, MainActivity)"]
     FeatureHome[":feature:home (Screens, ViewModels, UI State)"]
-    CoreData[":core:database & :core:datastore"]
-    CoreNetwork[":core:network (Retrofit, OkHttp, Kotlinx)"]
-    CoreCommon[":core:common (Dispatchers, Result monad)"]
+    CoreData[":core:data (OfflineFirstUserRepository)"]
+    CoreTesting[":core:testing (Test Fakes & Rules)"]
+    CoreStorage[":core:database & :core:datastore"]
+    CoreNetwork[":core:network (Retrofit, OkHttp)"]
+    CoreCommon[":core:common (Dispatchers, AppResult)"]
     CoreConnectivity[":core:connectivity (NetworkMonitor Flow)"]
     CoreAnalytics[":core:analytics (AnalyticsHelper)"]
     CorePermissions[":core:permissions (Compose launchers)"]
@@ -162,22 +192,33 @@ graph TD
 
     App --> FeatureHome
     App --> CoreDesignSystem
-    App --> CoreConnectivity
-    App --> CoreAnalytics
-
     FeatureHome --> CoreModel
+    FeatureHome --> CoreData
     FeatureHome --> CoreDesignSystem
     FeatureHome --> CoreUI
-    FeatureHome --> CoreConnectivity
-
     CoreData --> CoreModel
+    CoreData --> CoreStorage
+    CoreData --> CoreNetwork
     CoreData --> CoreCommon
-    CoreNetwork --> CoreModel
-    CoreNetwork --> CoreCommon
-    CoreUI --> CoreDesignSystem
+    CoreTesting --> CoreData
 ```
 
-For detailed module responsibilities, see [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md).
+### 2. Android SDK Architecture (`--type sdk`)
+
+Scaffolded SDK suites provide a redistributable, binary-compatible library setup with an interactive showcase app:
+
+```mermaid
+graph TD
+    SampleApp[":sample (Showcase Application)"]
+    SdkUi[":sdk-ui (Optional Compose Components, @Immutable)"]
+    SdkCore[":sdk-core (Headless Engine, explicitApi, Zero-Hilt)"]
+    SdkTesting[":sdk-testing (Consumer Test Fakes & Rules)"]
+
+    SampleApp --> SdkUi
+    SampleApp --> SdkCore
+    SdkUi --> SdkCore
+    SdkTesting --> SdkCore
+```
 
 ---
 

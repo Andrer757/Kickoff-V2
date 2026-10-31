@@ -8,6 +8,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.datastore.preferences)
+    api(libs.androidx.datastore.preferences)
     implementation(project(":core:common"))
 }

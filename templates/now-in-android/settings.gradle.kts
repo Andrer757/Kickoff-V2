@@ -1,5 +1,8 @@
 pluginManagement {
     includeBuild("build-logic")
+    if (file("build-logic/quality-verifier").exists()) {
+        includeBuild("build-logic/quality-verifier")
+    }
     repositories {
         google()
         mavenCentral()
@@ -28,6 +31,8 @@ include(":core:permissions")
 include(":core:network")
 include(":core:database")
 include(":core:datastore")
+include(":core:data")
+include(":core:testing")
 include(":core:designsystem")
 include(":core:ui")
 include(":feature:home")

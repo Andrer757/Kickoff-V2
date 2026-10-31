@@ -1,0 +1,72 @@
+name: Monorepo CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Publish Quality Verifier to Maven Local
+        run: ./gradlew :quality-verifier:publishToMavenLocal
+
+      - name: Build Kickoff CLI Distribution
+        run: ./gradlew :kickoff-cli:installDist
+
+      - name: Run Monorepo Tests
+        run: ./gradlew test
+
+      - name: Verify Kickoff Doctor
+        run: ./kickoff doctor --json
+
+  e2e-scaffold-verify:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Publish Quality Verifier & Build CLI
+        run: |
+          ./gradlew :quality-verifier:publishToMavenLocal :kickoff-cli:installDist
+
+      - name: Scaffold & Verify Android App
+        run: |
+          ./kickoff new --name "CI App" --package "com.example.ciapp" --output "/tmp/ci-app" --json
+          ./kickoff add feature --name settings -d /tmp/ci-app --json
+          ./kickoff add entity --name Article -d /tmp/ci-app --json
+          ./kickoff arch-check -d /tmp/ci-app
+
+      - name: Scaffold & Verify Android SDK
+        run: |
+          ./kickoff new --name "CI SDK" --package "com.example.cisdk" --type sdk --output "/tmp/ci-sdk" --json
+          ./kickoff add module --name analytics -t sdk -d /tmp/ci-sdk --json
+          ./kickoff arch-check -d /tmp/ci-sdk

@@ -1,0 +1,37 @@
+public abstract interface class ${configs.packageName}/sdk/core/SdkClient {
+	public static final field Companion L${configs.packageName}/sdk/core/SdkClient$Companion;
+	public abstract fun getConfig ()L${configs.packageName}/sdk/core/SdkConfig;
+	public abstract fun getStatus ()Lkotlinx/coroutines/flow/StateFlow;
+	public abstract fun initialize (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun shutdown ()V
+}
+
+public static final class ${configs.packageName}/sdk/core/SdkClient$Companion {
+	public final fun create (Landroid/content/Context;L${configs.packageName}/sdk/core/SdkConfig;)L${configs.packageName}/sdk/core/SdkClient;
+}
+
+public final class ${configs.packageName}/sdk/core/SdkConfig {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getApiKey ()Ljava/lang/String;
+	public final fun getDebugLoggingEnabled ()Z
+	public final fun getEnvironment ()Ljava/lang/String;
+}
+
+public final class ${configs.packageName}/sdk/core/SdkConfig$Builder {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;)V
+	public final fun build ()L${configs.packageName}/sdk/core/SdkConfig;
+	public final fun setDebugLoggingEnabled (Z)L${configs.packageName}/sdk/core/SdkConfig$Builder;
+	public final fun setEnvironment (Ljava/lang/String;)L${configs.packageName}/sdk/core/SdkConfig$Builder;
+}
+
+public final class ${configs.packageName}/sdk/core/SdkStatus : java/lang/Enum {
+	public static final field ERROR L${configs.packageName}/sdk/core/SdkStatus;
+	public static final field INITIALIZING L${configs.packageName}/sdk/core/SdkStatus;
+	public static final field READY L${configs.packageName}/sdk/core/SdkStatus;
+	public static final field UNINITIALIZED L${configs.packageName}/sdk/core/SdkStatus;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)L${configs.packageName}/sdk/core/SdkStatus;
+	public static fun values ()[L${configs.packageName}/sdk/core/SdkStatus;
+}

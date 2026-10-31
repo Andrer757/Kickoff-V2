@@ -42,6 +42,8 @@ class ProjectGeneratorTest {
             assertTrue(result.modules.contains(":app"))
             assertTrue(result.modules.contains(":core:common"))
             assertTrue(result.modules.contains(":core:connectivity"))
+            assertTrue(result.modules.contains(":core:data"))
+            assertTrue(result.modules.contains(":core:testing"))
             assertTrue(result.modules.contains(":feature:home"))
 
             // Check settings.gradle.kts
@@ -189,7 +191,7 @@ class ProjectGeneratorTest {
 
             // AI directories must NOT exist
             assertFalse(File(tempDir, ".claude").exists())
-            assertFalse(File(tempDir, ".github").exists())
+            assertFalse(File(tempDir, ".github/agents").exists())
             assertFalse(File(tempDir, ".cursor").exists())
             assertFalse(File(tempDir, ".agents").exists())
             assertFalse(File(tempDir, "scripts/setup-ai.sh").exists())
@@ -219,7 +221,7 @@ class ProjectGeneratorTest {
             assertTrue(File(tempDir, ".claude/agents").exists())
             assertTrue(File(tempDir, "scripts/setup-ai.sh").exists())
 
-            assertFalse(File(tempDir, ".github").exists())
+            assertFalse(File(tempDir, ".github/agents").exists())
             assertFalse(File(tempDir, ".cursor").exists())
             assertFalse(File(tempDir, ".agents").exists())
         } finally {
@@ -249,7 +251,51 @@ class ProjectGeneratorTest {
             assertTrue(File(tempDir, "scripts/setup-ai.sh").exists())
 
             assertFalse(File(tempDir, ".claude").exists())
-            assertFalse(File(tempDir, ".github").exists())
+            assertFalse(File(tempDir, ".github/agents").exists())
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `generator creates sdk project with bcv dumps and sample app`() {
+        val tempDir = createTempDirectory("kickoff-test-sdk").toFile()
+        try {
+            val sdkTemplateDir = File("../templates/android-sdk").let {
+                if (it.exists()) it else File("templates/android-sdk")
+            }
+
+            val config = ProjectConfig(
+                projectName = "Pay SDK",
+                packageName = "com.test.paysdk",
+                outputDir = tempDir.absolutePath,
+                templateDir = sdkTemplateDir.absolutePath,
+                projectType = "sdk",
+                gitInit = true
+            )
+
+            val result = ProjectGenerator().generate(config)
+            assertEquals("success", result.status)
+            assertEquals("Pay SDK", result.projectName)
+            assertEquals("sdk", result.projectType)
+
+            assertTrue(result.modules.contains(":sdk-core"))
+            assertTrue(result.modules.contains(":sdk-ui"))
+            assertTrue(result.modules.contains(":sdk-testing"))
+            assertTrue(result.modules.contains(":sample"))
+
+            // Verify BCV dump has substituted package with slashes
+            val bcvFile = File(tempDir, "sdk-core/api/sdk-core.api")
+            assertTrue(bcvFile.exists(), "BCV api file should exist")
+            val bcvContent = bcvFile.readText()
+            assertTrue(bcvContent.contains("com/test/paysdk/sdk/core/SdkClient"))
+
+            // Verify entry points
+            assertEquals("sdk-core/src/main/kotlin/com/test/paysdk/sdk/core/SdkClient.kt", result.entryPoints["sdkClient"])
+            assertEquals("sample/src/main/kotlin/com/test/paysdk/sample/SampleMainActivity.kt", result.entryPoints["sampleActivity"])
+
+            // Verify git repo was initialized
+            assertTrue(File(tempDir, ".git").exists())
         } finally {
             tempDir.deleteRecursively()
         }

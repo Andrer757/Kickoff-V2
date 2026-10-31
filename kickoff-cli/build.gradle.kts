@@ -21,6 +21,10 @@ distributions {
             from("${rootProject.projectDir}/templates") {
                 into("templates")
             }
+            from("${rootProject.projectDir}/quality-verifier") {
+                into("quality-verifier")
+                exclude("build", ".gradle", "src/test")
+            }
         }
     }
 }

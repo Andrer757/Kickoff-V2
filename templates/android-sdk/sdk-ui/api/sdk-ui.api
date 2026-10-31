@@ -1,0 +1,15 @@
+public final class ${configs.packageName}/sdk/ui/SdkBannerState {
+	public static final field $stable I
+	public fun <init> (L${configs.packageName}/sdk/core/SdkStatus;)V
+	public final fun component1 ()L${configs.packageName}/sdk/core/SdkStatus;
+	public final fun copy (L${configs.packageName}/sdk/core/SdkStatus;)L${configs.packageName}/sdk/ui/SdkBannerState;
+	public static synthetic fun copy$default (L${configs.packageName}/sdk/ui/SdkBannerState;L${configs.packageName}/sdk/core/SdkStatus;ILjava/lang/Object;)L${configs.packageName}/sdk/ui/SdkBannerState;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getStatus ()L${configs.packageName}/sdk/core/SdkStatus;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class ${configs.packageName}/sdk/ui/SdkStatusBannerKt {
+	public static final fun SdkStatusBanner (L${configs.packageName}/sdk/ui/SdkBannerState;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
