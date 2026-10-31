@@ -36,7 +36,7 @@ jobs:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          ./gradlew :quality-verifier:publishAllPublicationsToSonatypeCentralRepository
+          ./gradlew publishAggregationToCentralPortal
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

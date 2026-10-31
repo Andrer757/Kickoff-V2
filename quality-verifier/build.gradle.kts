@@ -3,6 +3,7 @@ plugins {
     `java-gradle-plugin`
     `maven-publish`
     signing
+    id("com.gradleup.nmcp")
 }
 
 java {
@@ -44,19 +45,6 @@ publishing {
                 connection.set("scm:git:git://github.com/Andrer757/Kickoff-V2.git")
                 developerConnection.set("scm:git:ssh://github.com:Andrer757/Kickoff-V2.git")
                 url.set("https://github.com/Andrer757/Kickoff-V2")
-            }
-        }
-    }
-
-    repositories {
-        maven {
-            name = "sonatypeCentral"
-            val releasesRepoUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            val snapshotsRepoUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-            url = if (version.toString().endsWith("-SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
-            credentials {
-                username = findProperty("sonatypeUsername")?.toString() ?: System.getenv("SONATYPE_USERNAME")
-                password = findProperty("sonatypePassword")?.toString() ?: System.getenv("SONATYPE_PASSWORD")
             }
         }
     }
