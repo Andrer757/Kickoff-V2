@@ -25,8 +25,8 @@ Thank you for your interest in contributing to **Kickoff**! As an open-source pr
 1. Fork the repository on GitHub.
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/<your-username>/kickoff.git
-   cd kickoff
+   git clone https://github.com/<your-username>/Kickoff-V2.git
+   cd Kickoff-V2
    ```
 3. Verify your Java setup:
    Ensure `gradle.properties` points to a compatible JDK 21 or that your `JAVA_HOME` is set to Java 21:
@@ -46,7 +46,8 @@ Kickoff is a multi-project Gradle monorepo:
 
 - **`:kickoff-cli`**: Standalone CLI application built with Kotlin 2.0.21 and Clikt 5.
 - **`:quality-verifier`**: Standalone Gradle plugin (`eu.andrer757.quality-verifier`) that bundles Detekt (with Compose rules), Spotless/Ktlint, Android Lint, and Kover.
-- **`templates/now-in-android`**: Uncompressed, git-tracked template for the generated Android application and AI swarm.
+- **`templates/now-in-android`**: Uncompressed, git-tracked template for multi-module Android applications and AI swarm.
+- **`templates/android-sdk`**: Uncompressed, git-tracked template for redistributable Android SDK libraries and showcase application.
 - **`.agents/skills/`**: Domain skill packs for AI coding assistants.
 
 ---

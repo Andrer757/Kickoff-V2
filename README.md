@@ -66,7 +66,8 @@ curl -fsSL https://raw.githubusercontent.com/Andrer757/Kickoff-V2/main/install.s
 
 #### Option B: Homebrew
 ```bash
-brew install Andrer757/Kickoff-V2/kickoff
+brew tap Andrer757/kickoff https://github.com/Andrer757/Kickoff-V2.git
+brew install kickoff
 ```
 
 #### Option C: Build from Source (Monorepo)
@@ -78,9 +79,11 @@ cd Kickoff-V2
 
 ### 2. Scaffold a New Project
 
+> *Note: If running from a monorepo checkout instead of a global binary install, use `./kickoff` in place of `kickoff`.*
+
 #### Scaffold an Android Application (Default)
 ```bash
-./kickoff new \
+kickoff new \
   --name "Crypto Tracker" \
   --package "com.example.cryptotracker" \
   --output "~/projects/crypto-tracker"
@@ -88,7 +91,7 @@ cd Kickoff-V2
 
 #### Scaffold a Redistributable Android SDK + Sample App
 ```bash
-./kickoff new \
+kickoff new \
   --name "Payment SDK" \
   --package "com.example.paymentsdk" \
   --type sdk \
@@ -137,38 +140,38 @@ Options:
 ### 2. `kickoff add feature`
 Auto-generates a new feature module and wires it into `settings.gradle.kts`, `app/build.gradle.kts`, and `MainActivity.kt`'s `NavHost`:
 ```bash
-./kickoff add feature --name settings
+kickoff add feature --name settings
 ```
 
 ### 3. `kickoff add module`
 Scaffolds a `:core:<name>` module in an App project or `:sdk-<name>` in an SDK project:
 ```bash
-./kickoff add module --name analytics --type core
-./kickoff add module --name telemetry --type sdk
+kickoff add module --name analytics --type core
+kickoff add module --name telemetry --type sdk
 ```
 
 ### 4. `kickoff add entity`
 Scaffolds a domain model, Room `@Entity`, `@Dao`, and offline-first repository across `:core:model`, `:core:database`, and `:core:data`:
 ```bash
-./kickoff add entity --name Article --fields "id:String,title:String,content:String"
+kickoff add entity --name Article --fields "id:String,title:String,content:String"
 ```
 
 ### 5. `kickoff arch-check`
 Validates Clean Architecture module boundaries without needing a Gradle daemon:
 ```bash
-./kickoff arch-check
+kickoff arch-check
 ```
 
 ### 6. `kickoff doctor`
 Diagnoses JDK, Android SDK, Gradle wrapper, and AI tools:
 ```bash
-./kickoff doctor [--json]
+kickoff doctor [--json]
 ```
 
 ### 7. `kickoff mcp`
 Launches the built-in stdio Model Context Protocol (MCP) server exposing tools directly to Claude Code, Cursor, Antigravity, and Windsurf:
 ```bash
-./kickoff mcp
+kickoff mcp
 ```
 
 Configure in Claude Desktop / Cursor / Antigravity (`mcpServers`):
