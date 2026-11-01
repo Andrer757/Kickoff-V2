@@ -35,7 +35,7 @@ Kickoff includes a native stdio **JSON-RPC 2.0 MCP Server** built directly into 
 {
   "mcpServers": {
     "kickoff": {
-      "command": "/absolute/path/to/kickoff-my/kickoff",
+      "command": "kickoff",
       "args": ["mcp"]
     }
   }

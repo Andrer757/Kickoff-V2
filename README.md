@@ -2,6 +2,10 @@
 
 > **Deterministic Android Scaffolding Engine, Multi-Module Compose Templates, Day-2 Generators & AI MCP Platform**
 
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="Kickoff CLI & Architecture Demo" width="920">
+</p>
+
 Kickoff is a deterministic developer CLI and AI engineering platform designed to bootstrap and evolve production-grade Android applications and redistributable SDK libraries. It implements Google's **Now-in-Android** Clean Architecture, **Jetpack Compose (Material 3)**, **Hilt**, **Room**, **Retrofit**, Binary Compatibility Validator, and an integrated static code analysis suite.
 
 Scaffolded projects don't just ship with code—they come equipped with an integrated **AI Agent Swarm** dynamically synthesized for **GitHub Copilot**, **Claude Code**, **Cursor**, and **Antigravity / Generic AI agents**, backed by a native **Model Context Protocol (MCP)** server.
@@ -22,7 +26,7 @@ Scaffolded projects don't just ship with code—they come equipped with an integ
 Kickoff unifies five mature Android engineering foundations into a single modern monorepo:
 
 ```
-kickoff-my/
+Kickoff-V2/
 ├── kickoff                              # Root wrapper script for the CLI generator
 ├── kickoff-cli/                         # Standalone CLI & MCP server (Kotlin 2.0.21 + Clikt 5)
 ├── quality-verifier/                    # Standalone Gradle plugin (eu.andrer757.quality-verifier)
@@ -51,11 +55,24 @@ kickoff-my/
 
 ### Prerequisites
 - **JDK 17 or JDK 21** (Eclipse Temurin 21 recommended)
-- **Gradle 8.12** (managed automatically via `./gradlew`)
 - **Android SDK** (API 35 SDK installed)
 
-### 1. Build Kickoff CLI
+### 1. Install Kickoff CLI
+
+#### Option A: One-Command Binary Installer (Linux & macOS)
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Andrer757/Kickoff-V2/main/install.sh | bash
+```
+
+#### Option B: Homebrew
+```bash
+brew install Andrer757/Kickoff-V2/kickoff
+```
+
+#### Option C: Build from Source (Monorepo)
+```bash
+git clone https://github.com/Andrer757/Kickoff-V2.git
+cd Kickoff-V2
 ./gradlew :kickoff-cli:installDist
 ```
 
@@ -159,12 +176,13 @@ Configure in Claude Desktop / Cursor / Antigravity (`mcpServers`):
 {
   "mcpServers": {
     "kickoff": {
-      "command": "/path/to/kickoff-my/kickoff",
+      "command": "kickoff",
       "args": ["mcp"]
     }
   }
 }
 ```
+*(Or specify `/path/to/Kickoff-V2/kickoff` if running directly from a monorepo checkout).*
 
 ---
 

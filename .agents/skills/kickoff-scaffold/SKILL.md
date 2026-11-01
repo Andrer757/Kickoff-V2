@@ -21,7 +21,7 @@ Kickoff generates complete, production-grade Android projects based on Google's 
 
 ## Command Usage
 
-Run the CLI tool from the `kickoff-my` root:
+Run the CLI tool from the `Kickoff-V2` root or directly via `kickoff`:
 
 ### 1. Scaffold an Android App (Default)
 ```bash

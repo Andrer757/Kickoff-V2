@@ -27,6 +27,8 @@ jobs:
         run: |
           ./gradlew :quality-verifier:publishToMavenLocal
           ./gradlew :kickoff-cli:distZip :kickoff-cli:distTar
+          cd kickoff-cli/build/distributions
+          sha256sum *.zip *.tar > checksums.txt
 
       - name: Publish Quality Verifier to Maven Central
         if: env.SONATYPE_USERNAME != ''
@@ -44,4 +46,5 @@ jobs:
           files: |
             kickoff-cli/build/distributions/*.zip
             kickoff-cli/build/distributions/*.tar
+            kickoff-cli/build/distributions/checksums.txt
           generate_release_notes: true
