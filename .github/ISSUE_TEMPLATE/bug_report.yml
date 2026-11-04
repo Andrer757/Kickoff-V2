@@ -1,0 +1,66 @@
+name: "Bug Report"
+description: "File a bug or unexpected behavior in Kickoff CLI, templates, or quality verifier"
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please provide as much detail as possible to help us reproduce and resolve it quickly.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Kickoff is affected?
+      options:
+        - "CLI: Scaffolding (kickoff new)"
+        - "CLI: Day-2 Generators (kickoff add feature/module/entity)"
+        - "CLI: Architecture Verifier (kickoff arch-check)"
+        - "CLI: Environment Doctor (kickoff doctor)"
+        - "AI & MCP: Stdio Server (kickoff mcp)"
+        - "Template: Now-in-Android (app archetype)"
+        - "Template: Android SDK (sdk archetype)"
+        - "Gradle Plugin: Quality Verifier (eu.andrer757.quality-verifier)"
+        - "Installation & Binary Distribution (install.sh / brew)"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the Bug
+      description: Clear and concise description of what the bug is.
+      placeholder: "When running kickoff new --type sdk, ..."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Exact steps or commands to reproduce the issue.
+      placeholder: |
+        1. Run `kickoff new --name 'Test App' --package 'com.example.test'`
+        2. Run `cd test-app && ./gradlew check`
+        3. See error ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal Output or Logs
+      description: Paste any relevant terminal logs, stack traces, or command outputs.
+      render: shell
+  - type: input
+    id: environment
+    attributes:
+      label: Environment Info
+      description: OS version, JDK version (`java -version`), and Kickoff version (`kickoff --version`).
+      placeholder: "Arch Linux / macOS Sonoma, OpenJDK 21.0.5, Kickoff v1.0.0"
+    validations:
+      required: true

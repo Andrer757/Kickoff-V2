@@ -17,7 +17,9 @@ Scaffolded projects don't just ship with code—they come equipped with an integ
 - 📖 [**Architecture Deep-Dive**](docs/ARCHITECTURE.md): Complete module topologies for both App (`now-in-android`) and SDK (`android-sdk`) archetypes.
 - 🤖 [**AI Agent Kit & MCP**](docs/AI_AGENT_KIT.md): Catalog of 16 specialized agents, 25 atomic skills, cross-IDE setup, and stdio MCP server.
 - 🛡️ [**Quality Verifier Plugin**](docs/QUALITY_VERIFIER.md): Detekt (Compose rules), Spotless (Ktlint), typed Android Lint, Architecture boundary verifier, and Kover.
-- 🤝 [**Contributing Guide**](CONTRIBUTING.md): How to build, test, and contribute to Kickoff as an open-source project.
+- 🤝 [**Contributing Guide**](CONTRIBUTING.md) & [**Code of Conduct**](CODE_OF_CONDUCT.md): How to build, test, and contribute to Kickoff under Contributor Covenant 2.1.
+- 🔒 [**Security Policy**](SECURITY.md): Vulnerability reporting procedures and supported version matrix.
+- ♿ [**Accessibility**](ACCESSIBILITY.md): CLI and Android Compose accessibility commitments.
 
 ---
 

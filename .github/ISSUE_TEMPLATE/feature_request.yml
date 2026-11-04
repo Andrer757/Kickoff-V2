@@ -1,0 +1,50 @@
+name: "Feature Request"
+description: "Suggest an idea, new architecture archetype, generator, or AI capability"
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We welcome ideas to make Kickoff even faster, more extensible, and better integrated with modern Android & AI workflows!
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What area does this feature relate to?
+      options:
+        - "New Scaffolding Archetype (e.g. KMP, Wear OS, Android TV)"
+        - "CLI Day-2 Generator (e.g. kickoff add screen / usecase)"
+        - "AI Swarm & MCP Capabilities"
+        - "Quality Verifier Rules & Static Analysis"
+        - "Build Logic & Gradle Convention Plugins"
+        - "Developer Experience & Tooling"
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: Brief description of the requested feature.
+      placeholder: "Add support for Kotlin Multiplatform (KMP) shared modules..."
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation & Problem Statement
+      description: What problem does this solve, or what workflow does it improve?
+      placeholder: "Currently, Kickoff scaffolds Android-only multi-module projects..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution & CLI API
+      description: How should this work from a developer's perspective? Include CLI flags or configuration examples if applicable.
+      placeholder: "kickoff new --type kmp --platforms android,ios"
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative designs, tools, or workarounds you've explored.

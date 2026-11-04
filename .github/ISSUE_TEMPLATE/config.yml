@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation Index
+    url: https://github.com/Andrer757/Kickoff-V2#documentation-index
+    about: Read deep-dives on architecture, AI swarm setup, and the Quality Verifier plugin.
+  - name: 💬 GitHub Discussions
+    url: https://github.com/Andrer757/Kickoff-V2/discussions
+    about: Ask questions, share feedback, and discuss project design with the community.
+  - name: 🛡️ Report a Security Vulnerability
+    url: https://github.com/Andrer757/Kickoff-V2/security/advisories/new
+    about: Privately disclose sensitive security vulnerabilities.

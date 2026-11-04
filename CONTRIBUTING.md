@@ -6,6 +6,8 @@ Thank you for your interest in contributing to **Kickoff**! As an open-source pr
 
 ## 1. Code of Conduct & Values
 
+All contributors and maintainers are expected to follow our [**Code of Conduct**](CODE_OF_CONDUCT.md) (Contributor Covenant 2.1).
+
 - **Respect & Inclusivity**: Treat all contributors and users with empathy and respect.
 - **Architectural Integrity**: Maintain Google's Now-in-Android multi-module architecture, Clean Architecture boundaries, and modern Kotlin practices.
 - **Deterministic Tooling**: Ensure that scaffolding operations remain predictable, fast, and reproducible across different operating systems (Linux, macOS, Windows).
