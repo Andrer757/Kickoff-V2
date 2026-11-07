@@ -9,7 +9,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.coroutines.core)
 
     testImplementation(project(":sdk-testing"))
     testImplementation(libs.junit.jupiter)

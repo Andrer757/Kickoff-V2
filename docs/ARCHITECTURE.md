@@ -114,9 +114,9 @@ The Kickoff generator operates deterministically:
 
 1. **Uncompressed Source Walking**: Traverses `templates/now-in-android` (for `--type app`) or `templates/android-sdk` (for `--type sdk`).
 2. **Single Source of Truth AI Synthesis**: Reads canonical Markdown definitions from `templates/now-in-android/.agents/` and dynamically generates target configurations:
-   - **Claude Code**: `.claude/agents/*.md` with tool bindings and `settings.json`.
+   - **Claude Code**: `.claude/agents/*.md` and `.claude/skills/`.
    - **GitHub Copilot**: `.github/agents/*.agent.md` with user-invocable tags and governance.
-   - **Cursor**: `.cursor/rules/*.mdc` with glob filters and `.agents/skills/`.
+   - **Cursor**: `.cursor/rules/*.mdc` rules and `.agents/skills/`.
    - **Generic / Antigravity**: `.agents/agents/*.md` and `.agents/skills/`.
 3. **Dynamic Package Path Remapping**: Replaces all `app_package` directory tokens with the user-provided package structure (e.g. `com/example/myapp`).
 4. **Token Replacement**: Replaces `${configs.projectName}`, `${configs.packageName}`, `${configs.minSdk}`, and `${configs.targetSdk}`. In BCV `.api` files, package tokens are formatted with JVM descriptor slashes (`com/example/myapp`).

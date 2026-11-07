@@ -18,7 +18,7 @@ All contributors and maintainers are expected to follow our [**Code of Conduct**
 
 ### Prerequisites
 - **Git**
-- **JDK 17 or JDK 21** (Eclipse Temurin 21 recommended)
+- **JDK 21** (Eclipse Temurin 21 recommended; JDK 17 cannot build or run Kickoff)
 - **Gradle 8.12** (managed automatically by `./gradlew`)
 - **Android SDK** (API 35 SDK installed)
 

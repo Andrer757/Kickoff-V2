@@ -116,13 +116,13 @@ if command -v java >/dev/null 2>&1; then
     if [ "$JAVA_MAJOR" = "1" ]; then
         JAVA_MAJOR="$(echo "$JAVA_VER_STR" | cut -d'.' -f2)"
     fi
-    if [ -n "$JAVA_MAJOR" ] && [ "$JAVA_MAJOR" -ge 17 ] 2>/dev/null; then
-        success "Java ${JAVA_VER_STR} detected (meets requirement >= 17, recommended 21)"
+    if [ -n "$JAVA_MAJOR" ] && [ "$JAVA_MAJOR" -ge 21 ] 2>/dev/null; then
+        success "Java ${JAVA_VER_STR} detected (meets requirement >= 21)"
     else
-        warn "Detected Java version ${JAVA_VER_STR}. Kickoff requires JDK 17 or JDK 21 (Temurin 21 recommended)."
+        warn "Detected Java version ${JAVA_VER_STR}. Kickoff requires JDK 21 (Temurin 21 recommended)."
     fi
 else
-    warn "No Java runtime found in PATH. Kickoff CLI requires JDK 17 or JDK 21."
+    warn "No Java runtime found in PATH. Kickoff CLI requires JDK 21."
     printf "      Install JDK 21 via SDKMAN: ${C_CYAN}sdk install java 21-tem${C_RESET}\n"
     printf "      Or via Homebrew:          ${C_CYAN}brew install openjdk@21${C_RESET}\n"
 fi

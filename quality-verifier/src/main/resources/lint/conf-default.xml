@@ -9,7 +9,7 @@
     <issue id="GrantAllUris" severity="error"/>
     <issue id="ProtectedPermissions" severity="error"/>
     <issue id="WorldReadableFiles" severity="error"/>
-    <issue id="WorldWritableFiles" severity="error"/>
+    <issue id="WorldWriteableFiles" severity="error"/>
     <issue id="PackagedPrivateKey" severity="error"/>
     <issue id="SecureRandom" severity="error"/>
 

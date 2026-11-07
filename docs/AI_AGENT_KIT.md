@@ -13,8 +13,8 @@ When `./kickoff new ... --ai <env>` runs, `AiKitSynthesizer` dynamically compile
 | AI Tool | Scaffolded Directory | Dynamic Synthesis Behavior |
 |---|---|---|
 | **GitHub Copilot** | `.github/agents/`, `.github/skills/`, `.github/governance/` | Generates `.agent.md` files with VS Code tool bindings and `user-invocable: true` tags. |
-| **Claude Code** | `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` | Generates `.md` files with Claude Code tool bindings and settings schema. |
-| **Cursor** | `.cursor/rules/*.mdc`, `.agents/skills/` | Generates official `.mdc` rules with glob filters (`**/*.kt, **/*.kts`) and alwaysApply options. |
+| **Claude Code** | `.claude/agents/`, `.claude/skills/` | Generates `.md` subagents that inherit every session tool (including MCP) unless the canonical agent sets `tools:`; `model:` and `effort:` are passed through. |
+| **Cursor** | `.cursor/rules/*.mdc`, `.agents/skills/` | Generates official `.mdc` agent-requested rules (`alwaysApply: false`) with descriptions. |
 | **Antigravity / Generic** | `.agents/agents/`, `.agents/skills/` | Standard cross-agent Markdown specifications. |
 
 ---

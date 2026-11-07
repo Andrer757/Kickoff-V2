@@ -8,6 +8,7 @@ import ${configs.packageName}.core.database.UserEntity
 import ${configs.packageName}.core.datastore.UserPreferencesDataSource
 import ${configs.packageName}.core.model.User
 import ${configs.packageName}.core.network.ApiService
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -33,11 +34,14 @@ class OfflineFirstUserRepository @Inject constructor(
         userPreferencesDataSource.setDarkMode(enabled)
     }
 
+    @Suppress("TooGenericExceptionCaught")
     override suspend fun syncUsers(): AppResult<Unit> = withContext(ioDispatcher) {
         try {
             val remoteUsers = apiService.getUsers()
             userDao.insertUsers(remoteUsers.map { it.asEntity() })
             AppResult.Success(Unit)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             AppResult.Error(e)
         }

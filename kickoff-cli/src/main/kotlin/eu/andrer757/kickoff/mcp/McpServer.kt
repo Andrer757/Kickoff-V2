@@ -1,5 +1,9 @@
 package eu.andrer757.kickoff.mcp
 
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.CliktError
+import com.github.ajalt.clikt.core.ProgramResult
+import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.core.parse
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -32,6 +36,9 @@ class McpServer {
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
+        // A response must carry either "result" or "error", never both. Strict MCP clients
+        // (e.g. Claude Code) reject messages that contain `"error": null` and drop the connection.
+        explicitNulls = false
         prettyPrint = false
     }
 
@@ -48,7 +55,8 @@ class McpServer {
                     "minSdk" to mapOf("type" to "integer", "description" to "Minimum SDK version (default: 26)"),
                     "targetSdk" to mapOf("type" to "integer", "description" to "Target SDK version (default: 35)"),
                     "ai" to mapOf("type" to "string", "description" to "Target AI: copilot, claude, cursor, generic, all, none (default: all)"),
-                    "gitInit" to mapOf("type" to "boolean", "description" to "Whether to initialize a git repo (default: true)")
+                    "gitInit" to mapOf("type" to "boolean", "description" to "Whether to initialize a git repo (default: true)"),
+                    "engram" to mapOf("type" to "boolean", "description" to "Opt in to Engram MCP memory: generates MCP client configs for the selected AI tools (default: false)")
                 ),
                 required = listOf("name", "packageName")
             )
@@ -152,10 +160,23 @@ class McpServer {
                 json.encodeToString(JsonRpcResponse(id = request.id, result = listResult))
             }
             "tools/call" -> {
-                val toolName = request.params?.get("name")?.jsonPrimitive?.content ?: ""
-                val arguments = request.params?.get("arguments")?.jsonObject ?: JsonObject(emptyMap())
-                val callResult = executeTool(toolName, arguments)
-                json.encodeToString(JsonRpcResponse(id = request.id, result = json.encodeToJsonElement(callResult)))
+                val toolName = (request.params?.get("name") as? JsonPrimitive)?.takeIf { it.isString }?.content
+                val arguments = when (val raw = request.params?.get("arguments")) {
+                    null -> JsonObject(emptyMap())
+                    is JsonObject -> raw
+                    else -> null
+                }
+                if (toolName == null || arguments == null) {
+                    json.encodeToString(
+                        JsonRpcResponse(
+                            id = request.id,
+                            error = JsonRpcError(-32602, "Invalid params: 'name' must be a string and 'arguments' an object")
+                        )
+                    )
+                } else {
+                    val callResult = executeTool(toolName, arguments)
+                    json.encodeToString(JsonRpcResponse(id = request.id, result = json.encodeToJsonElement(callResult)))
+                }
             }
             else -> {
                 json.encodeToString(
@@ -181,6 +202,7 @@ class McpServer {
                     val targetSdk = args["targetSdk"]?.jsonPrimitive?.intOrNull ?: 35
                     val ai = args["ai"]?.jsonPrimitive?.content ?: "all"
                     val gitInit = args["gitInit"]?.jsonPrimitive?.booleanOrNull ?: true
+                    val engram = args["engram"]?.jsonPrimitive?.booleanOrNull ?: false
 
                     val templatePath = if (projType == "sdk") "templates/android-sdk" else "templates/now-in-android"
                     val templateDir = resolveTemplateDir(templatePath)
@@ -194,7 +216,8 @@ class McpServer {
                         targetSdk = targetSdk,
                         aiEnvironments = ai.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet(),
                         projectType = projType,
-                        gitInit = gitInit
+                        gitInit = gitInit,
+                        engram = engram
                     )
                     val result = ProjectGenerator().generate(config)
                     ToolCallResult(listOf(ToolContent(text = json.encodeToString(result))), isError = result.status != "success")
@@ -206,9 +229,7 @@ class McpServer {
                         ?: return ToolCallResult(listOf(ToolContent(text = "Project root not found")), isError = true)
 
                     val cmdArgs = mutableListOf("-n", featName, "-d", root.absolutePath, "--json")
-                    val cmd = AddFeatureCommand()
-                    cmd.parse(cmdArgs)
-                    ToolCallResult(listOf(ToolContent(text = "Feature '$featName' created successfully!")))
+                    runCommand(AddFeatureCommand(), cmdArgs)
                 }
                 "kickoff_add_module" -> {
                     val modName = args["name"]?.jsonPrimitive?.content ?: ""
@@ -218,9 +239,7 @@ class McpServer {
                         ?: return ToolCallResult(listOf(ToolContent(text = "Project root not found")), isError = true)
 
                     val cmdArgs = mutableListOf("-n", modName, "-t", modType, "-d", root.absolutePath, "--json")
-                    val cmd = AddModuleCommand()
-                    cmd.parse(cmdArgs)
-                    ToolCallResult(listOf(ToolContent(text = "Module '$modName' created successfully!")))
+                    runCommand(AddModuleCommand(), cmdArgs)
                 }
                 "kickoff_add_entity" -> {
                     val entName = args["name"]?.jsonPrimitive?.content ?: ""
@@ -230,9 +249,7 @@ class McpServer {
                         ?: return ToolCallResult(listOf(ToolContent(text = "Project root not found")), isError = true)
 
                     val cmdArgs = mutableListOf("-n", entName, "-f", entFields, "-d", root.absolutePath, "--json")
-                    val cmd = AddEntityCommand()
-                    cmd.parse(cmdArgs)
-                    ToolCallResult(listOf(ToolContent(text = "Entity '$entName' created successfully!")))
+                    runCommand(AddEntityCommand(), cmdArgs)
                 }
                 "kickoff_arch_check" -> {
                     val pDir = args["projectDir"]?.jsonPrimitive?.content ?: ""
@@ -251,6 +268,29 @@ class McpServer {
             }
         } catch (e: Exception) {
             ToolCallResult(listOf(ToolContent(text = "Tool execution failed: ${e.message}")), isError = true)
+        }
+    }
+
+    /**
+     * Runs a Clikt subcommand in-process. Its output is captured instead of going to stdout,
+     * which is reserved for JSON-RPC frames, and a failing command returns an error result
+     * instead of terminating the server.
+     */
+    private fun runCommand(command: CliktCommand, args: List<String>): ToolCallResult {
+        val captured = StringBuilder()
+        command.context {
+            echoMessage = { _, message, trailingNewline, _ ->
+                captured.append(message)
+                if (trailingNewline) captured.append('\n')
+            }
+        }
+        return try {
+            command.parse(args)
+            ToolCallResult(listOf(ToolContent(text = captured.toString().trim())))
+        } catch (e: ProgramResult) {
+            ToolCallResult(listOf(ToolContent(text = captured.toString().trim())), isError = e.statusCode != 0)
+        } catch (e: CliktError) {
+            ToolCallResult(listOf(ToolContent(text = e.message ?: captured.toString().trim())), isError = true)
         }
     }
 
@@ -297,12 +337,26 @@ class McpServer {
         val reader = BufferedReader(InputStreamReader(input, Charsets.UTF_8))
         while (true) {
             val line = reader.readLine() ?: break
-            val response = handleMessage(line)
+            // One bad request must not end the session: answer it with an error and keep reading.
+            val response = try {
+                handleMessage(line)
+            } catch (e: Exception) {
+                System.err.println("kickoff mcp: failed to handle request: ${e.message}")
+                internalErrorResponse(line, e)
+            }
             if (response != null) {
                 output.println(response)
                 output.flush()
             }
         }
+    }
+
+    private fun internalErrorResponse(rawMessage: String, error: Exception): String? {
+        val requestObject = runCatching { json.parseToJsonElement(rawMessage) as? JsonObject }.getOrNull()
+        val id = requestObject?.get("id") ?: return null
+        return json.encodeToString(
+            JsonRpcResponse(id = id, error = JsonRpcError(-32603, "Internal error: ${error.message}"))
+        )
     }
 
     companion object {

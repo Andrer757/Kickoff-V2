@@ -6,13 +6,7 @@ import java.nio.file.StandardCopyOption
 
 class AiKitSynthesizer {
 
-    private val commonToolsList = listOf(
-        "execute/runInTerminal", "execute/runTests", "read/readFile",
-        "search/codebase", "search/fileSearch", "search/textSearch",
-        "edit/createFile", "edit/editFiles"
-    )
-
-    fun synthesize(canonicalAgentsDir: File, targetDir: File, selectedAi: Set<String>) {
+    fun synthesize(canonicalAgentsDir: File, targetDir: File, selectedAi: Set<String>, engram: Boolean = false) {
         if (selectedAi.contains("none") || !canonicalAgentsDir.exists()) {
             return
         }
@@ -20,6 +14,8 @@ class AiKitSynthesizer {
         val agentsSrc = File(canonicalAgentsDir, "agents")
         val skillsSrc = File(canonicalAgentsDir, "skills")
         val governanceSrc = File(canonicalAgentsDir.parentFile, ".github/governance")
+        val backlogSrc = File(canonicalAgentsDir.parentFile, ".github/backlog")
+        val policiesSrc = File(canonicalAgentsDir.parentFile, ".github/policies")
 
         val isAll = selectedAi.contains("all")
         val enableClaude = isAll || selectedAi.contains("claude")
@@ -63,16 +59,17 @@ class AiKitSynthesizer {
                 skillsSrc.copyRecursively(claudeSkillsDir, overwrite = true)
             }
 
-            val settingsFile = File(targetDir, ".claude/settings.json")
-            if (!settingsFile.exists()) {
-                settingsFile.writeText(
+            // Claude Code discovers .claude/agents and .claude/skills by convention, so no settings
+            // are needed unless Engram is enabled. Then the project-scoped .mcp.json server is pre-approved.
+            if (engram) {
+                writeIfAbsent(File(targetDir, ".mcp.json"), mcpServersJson())
+                writeIfAbsent(
+                    File(targetDir, ".claude/settings.json"),
                     """
                     {
-                      "agentsDirectory": ".claude/agents",
-                      "skillsDirectory": ".claude/skills"
+                      "enabledMcpjsonServers": ["engram"]
                     }
-                    """.trimIndent(),
-                    Charsets.UTF_8
+                    """.trimIndent() + "\n"
                 )
             }
         }
@@ -95,10 +92,33 @@ class AiKitSynthesizer {
                 skillsSrc.copyRecursively(copilotSkillsDir, overwrite = true)
             }
 
-            if (governanceSrc != null && governanceSrc.exists()) {
-                val targetGov = File(targetDir, ".github/governance")
-                governanceSrc.copyRecursively(targetGov, overwrite = true)
+            if (engram) {
+                writeIfAbsent(
+                    File(targetDir, ".vscode/mcp.json"),
+                    """
+                    {
+                      "servers": {
+                        "engram": {
+                          "type": "stdio",
+                          "command": "engram",
+                          "args": ["mcp"]
+                        }
+                      }
+                    }
+                    """.trimIndent() + "\n"
+                )
             }
+        }
+
+        // Governance registry, backlog, and local policies are the default (file-based) pipeline state.
+        if (governanceSrc.exists()) {
+            governanceSrc.copyRecursively(File(targetDir, ".github/governance"), overwrite = true)
+        }
+        if (backlogSrc.exists()) {
+            backlogSrc.copyRecursively(File(targetDir, ".github/backlog"), overwrite = true)
+        }
+        if (policiesSrc.exists()) {
+            policiesSrc.copyRecursively(File(targetDir, ".github/policies"), overwrite = true)
         }
 
         // 4. Cursor (.cursor/rules/)
@@ -112,7 +132,28 @@ class AiKitSynthesizer {
                 val synthesized = synthesizeCursorRule(content)
                 File(cursorRulesDir, "$slug.mdc").writeText(synthesized, Charsets.UTF_8)
             }
+            if (engram) {
+                writeIfAbsent(File(targetDir, ".cursor/mcp.json"), mcpServersJson())
+            }
         }
+    }
+
+    private fun mcpServersJson(): String =
+        """
+        {
+          "mcpServers": {
+            "engram": {
+              "command": "engram",
+              "args": ["mcp"]
+            }
+          }
+        }
+        """.trimIndent() + "\n"
+
+    private fun writeIfAbsent(file: File, content: String) {
+        if (file.exists()) return
+        file.parentFile?.mkdirs()
+        file.writeText(content, Charsets.UTF_8)
     }
 
     private fun synthesizeClaudeAgent(content: String): String {
@@ -125,7 +166,12 @@ class AiKitSynthesizer {
             appendLine("---")
             appendLine("name: $name")
             appendLine("description: ${escapeYamlString(description)}")
-            appendLine("tools: Read, Bash, Edit, Write, Grep, Glob, WebFetch, TodoWrite, Skill")
+            // No default `tools:` allowlist: Claude Code then gives the agent every tool the session has,
+            // including MCP servers (mcp__engram__*, mcp__kickoff__*) and Agent. An explicit list without
+            // them silently blocks the Engram hand-offs and kickoff_arch_check the agent prompts rely on.
+            formatToolList(frontmatter["tools"])?.let { appendLine("tools: $it") }
+            frontmatter["model"]?.let { appendLine("model: $it") }
+            frontmatter["effort"]?.let { appendLine("effort: $it") }
             if (skillsBlock.isNotBlank()) {
                 appendLine(skillsBlock)
             }
@@ -140,13 +186,11 @@ class AiKitSynthesizer {
         val (frontmatter, body) = parseFrontmatter(content)
         val name = frontmatter["name"] ?: "Agent"
         val description = frontmatter["description"] ?: ""
-        val toolsFormatted = commonToolsList.joinToString(", ")
-
         return buildString {
             appendLine("---")
             appendLine("name: $name")
             appendLine("description: ${escapeYamlString(description)}")
-            appendLine("tools: [$toolsFormatted]")
+            // No `tools:` list: Copilot then exposes all tools, including MCP servers and sub-agents.
             appendLine("user-invocable: true")
             appendLine("---")
             appendLine()
@@ -162,7 +206,6 @@ class AiKitSynthesizer {
         return buildString {
             appendLine("---")
             appendLine("description: ${escapeYamlString(description)}")
-            appendLine("globs: \"**/*.kt, **/*.kts\"")
             appendLine("alwaysApply: false")
             appendLine("---")
             appendLine()
@@ -171,41 +214,86 @@ class AiKitSynthesizer {
         }
     }
 
-    private fun parseFrontmatter(content: String): Pair<Map<String, String>, String> {
-        if (!content.startsWith("---")) return emptyMap<String, String>() to content
+    /**
+     * Minimal YAML frontmatter reader for agent files: `key: value`, quoted values,
+     * folded/literal block scalars (`>`, `|`, with optional chomping indicator) and string lists.
+     */
+    internal fun parseFrontmatter(content: String): Pair<Map<String, String>, String> {
+        val normalized = content.replace("\r\n", "\n")
+        if (!normalized.startsWith("---")) return emptyMap<String, String>() to content
 
-        val parts = content.split(Regex("^---\\s*$", RegexOption.MULTILINE))
+        val parts = normalized.split(Regex("^---\\s*$", RegexOption.MULTILINE))
         if (parts.size < 3) return emptyMap<String, String>() to content
 
         val rawFm = parts[1]
         val body = parts.drop(2).joinToString("---")
         val map = mutableMapOf<String, String>()
 
-        var currentKey: String? = null
-        val currentList = mutableListOf<String>()
+        val lines = rawFm.lines()
+        var index = 0
+        while (index < lines.size) {
+            val match = topLevelKeyRegex.matchEntire(lines[index])
+            index++
+            if (match == null) continue
 
-        for (line in rawFm.lines()) {
-            val trimmed = line.trim()
-            if (trimmed.startsWith("- ") && currentKey != null) {
-                currentList.add(trimmed.substring(2).trim())
-            } else if (trimmed.contains(":")) {
-                if (currentKey != null && currentList.isNotEmpty()) {
-                    map[currentKey] = currentList.joinToString(",")
-                    currentList.clear()
-                }
-                val key = trimmed.substringBefore(":").trim()
-                val value = trimmed.substringAfter(":").trim()
-                currentKey = key
-                if (value.isNotEmpty()) {
-                    map[key] = value
-                }
+            val key = match.groupValues[1]
+            val value = match.groupValues[2].trim()
+
+            // Everything up to the next top-level key belongs to this key:
+            // indented lines, blank lines and `- item` entries.
+            val nested = mutableListOf<String>()
+            while (index < lines.size && !topLevelKeyRegex.matches(lines[index])) {
+                nested.add(lines[index])
+                index++
             }
-        }
-        if (currentKey != null && currentList.isNotEmpty()) {
-            map[currentKey] = currentList.joinToString(",")
+
+            val parsed = when {
+                blockScalarRegex.matches(value) -> parseBlockScalar(nested, folded = value.startsWith(">"))
+                value.isEmpty() -> nested.map { it.trim() }
+                    .filter { it.startsWith("-") }
+                    .joinToString(",") { it.removePrefix("-").trim() }
+                else -> (listOf(value) + nested.map { it.trim() }.filter { it.isNotEmpty() })
+                    .joinToString(" ")
+                    .let(::unquote)
+            }
+            if (parsed.isNotEmpty()) {
+                map[key] = parsed
+            }
         }
 
         return map to body
+    }
+
+    /** YAML `|` (literal) and `>` (folded) block scalars with indented continuation lines. */
+    private fun parseBlockScalar(lines: List<String>, folded: Boolean): String {
+        val content = lines.dropLastWhile { it.isBlank() }
+        val indent = content.filter { it.isNotBlank() }.minOfOrNull { line -> line.indexOfFirst { !it.isWhitespace() } } ?: 0
+        val stripped = content.map { if (it.isBlank()) "" else it.substring(indent).trimEnd() }
+        if (!folded) return stripped.joinToString("\n").trim()
+
+        return buildString {
+            stripped.forEach { line ->
+                when {
+                    line.isEmpty() -> append("\n")
+                    isEmpty() || endsWith("\n") -> append(line)
+                    else -> append(" ").append(line)
+                }
+            }
+        }.trim()
+    }
+
+    private fun unquote(value: String): String = when {
+        value.length >= 2 && value.startsWith("\"") && value.endsWith("\"") ->
+            value.substring(1, value.length - 1).replace("\\\"", "\"")
+        value.length >= 2 && value.startsWith("'") && value.endsWith("'") ->
+            value.substring(1, value.length - 1).replace("''", "'")
+        else -> value
+    }
+
+    private fun formatToolList(rawTools: String?): String? {
+        if (rawTools.isNullOrBlank()) return null
+        val tools = rawTools.removeSurrounding("[", "]").split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        return tools.takeIf { it.isNotEmpty() }?.joinToString(", ")
     }
 
     private fun formatSkills(rawSkills: String?): String {
@@ -219,7 +307,15 @@ class AiKitSynthesizer {
     }
 
     private fun escapeYamlString(value: String): String {
-        val clean = value.replace("\"", "\\\"").trim()
+        val clean = value.trim()
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
         return "\"$clean\""
+    }
+
+    private companion object {
+        val topLevelKeyRegex = Regex("^([A-Za-z0-9_-]+):(?:\\s+(.*))?$")
+        val blockScalarRegex = Regex("^[|>][+-]?[1-9]?[+-]?$")
     }
 }

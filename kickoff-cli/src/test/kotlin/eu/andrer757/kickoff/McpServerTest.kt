@@ -1,11 +1,13 @@
 package eu.andrer757.kickoff
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import eu.andrer757.kickoff.mcp.McpServer
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -28,6 +30,35 @@ class McpServerTest {
         assertNotNull(result)
         assertEquals("2024-11-05", result["protocolVersion"]?.jsonPrimitive?.content)
         assertEquals("kickoff-mcp", result["serverInfo"]?.jsonObject?.get("name")?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `success responses omit null error and result keys`() {
+        val server = McpServer()
+        val requests = listOf(
+            """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}""",
+            """{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"""
+        )
+
+        requests.forEach { request ->
+            val rawResponse = server.handleMessage(request)
+            assertNotNull(rawResponse)
+            val response = json.parseToJsonElement(rawResponse).jsonObject
+            assertFalse("error" in response, "Success response must not contain an error key: $rawResponse")
+            assertNotNull(response["result"])
+        }
+    }
+
+    @Test
+    fun `error responses omit null result key`() {
+        val server = McpServer()
+        val request = """{"jsonrpc":"2.0","id":4,"method":"non_existent_method","params":{}}"""
+        val rawResponse = server.handleMessage(request)
+
+        assertNotNull(rawResponse)
+        val response = json.parseToJsonElement(rawResponse).jsonObject
+        assertFalse("result" in response, "Error response must not contain a result key: $rawResponse")
+        assertNotNull(response["error"])
     }
 
     @Test
@@ -73,5 +104,8 @@ class McpServerTest {
 
         assertNotNull(rawResponse)
         assertTrue(rawResponse.contains("-32700"))
+        val response = json.parseToJsonElement(rawResponse).jsonObject
+        assertEquals(JsonNull, response["id"], "Parse errors must carry \"id\": null: $rawResponse")
+        assertFalse("result" in response)
     }
 }

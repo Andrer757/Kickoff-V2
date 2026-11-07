@@ -33,19 +33,19 @@ object DoctorService {
         // 1. Java Runtime Check
         val javaVersion = System.getProperty("java.version") ?: "unknown"
         val javaVendor = System.getProperty("java.vendor") ?: "unknown"
-        val isJavaOk = javaVersion.startsWith("17") || javaVersion.startsWith("21") || javaVersion.startsWith("25")
+        val isJavaOk = (javaVersion.substringBefore(".").substringBefore("-").toIntOrNull() ?: 0) >= 21
         items.add(
             DiagnosticItem(
                 name = "Java JDK",
                 category = "Toolchain",
                 passed = isJavaOk,
                 details = "$javaVendor JDK $javaVersion",
-                recommendation = if (!isJavaOk) "Use JDK 17 or JDK 21 (Temurin-21 recommended)." else null
+                recommendation = if (!isJavaOk) "Kickoff requires JDK 21+ (bytecode targets Java 21). Install Temurin-21 into ~/.jdks/temurin-21 or set JAVA_HOME." else null
             )
         )
 
         // 2. Android SDK Check
-        val androidHome = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+        val androidHome = resolveAndroidSdkDir(projectRoot)?.absolutePath
         val hasAndroidSdk = !androidHome.isNullOrBlank() && File(androidHome).exists()
         val hasApi35 = hasAndroidSdk && File(androidHome, "platforms/android-35").exists()
 
@@ -54,7 +54,7 @@ object DoctorService {
                 name = "Android SDK",
                 category = "Toolchain",
                 passed = hasAndroidSdk,
-                details = if (hasAndroidSdk) "Located at $androidHome" else "ANDROID_HOME not found in environment",
+                details = if (hasAndroidSdk) "Located at $androidHome" else "ANDROID_HOME not found in environment or standard paths",
                 recommendation = if (!hasAndroidSdk) "Install Android SDK and export ANDROID_HOME." else null
             )
         )
@@ -124,6 +124,31 @@ object DoctorService {
             status = if (allCorePassed) "success" else "degraded",
             items = items
         )
+    }
+
+    private fun resolveAndroidSdkDir(projectRoot: File?): File? {
+        val envHome = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+        if (!envHome.isNullOrBlank() && File(envHome).exists()) {
+            return File(envHome)
+        }
+        if (projectRoot != null) {
+            val localProps = File(projectRoot, "local.properties")
+            if (localProps.exists()) {
+                val sdkDirLine = localProps.readLines().firstOrNull { it.trim().startsWith("sdk.dir=") }
+                val rawSdkDir = sdkDirLine?.substringAfter("sdk.dir=")?.trim()?.replace("\\:", ":")?.replace("\\\\", "\\")
+                if (!rawSdkDir.isNullOrBlank() && File(rawSdkDir).exists()) {
+                    return File(rawSdkDir)
+                }
+            }
+        }
+        val home = System.getProperty("user.home") ?: ""
+        val localAppData = System.getenv("LOCALAPPDATA") ?: ""
+        val defaultCandidates = listOf(
+            File(home, "Android/Sdk"),
+            File(home, "Library/Android/sdk"),
+            File(localAppData, "Android/Sdk")
+        )
+        return defaultCandidates.firstOrNull { it.exists() && it.isDirectory }
     }
 
     private fun isCommandAvailable(cmd: String): Boolean {

@@ -9,6 +9,8 @@ import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -140,8 +142,8 @@ class CommandsTest {
             val screenFile = File(tempDir, "feature/profile/src/main/kotlin/com/test/featureapp/feature/profile/ProfileScreen.kt")
             assertTrue(screenFile.exists(), "ProfileScreen.kt should exist")
 
-            val navFile = File(tempDir, "feature/profile/src/main/kotlin/com/test/featureapp/feature/profile/ProfileNavigation.kt")
-            assertTrue(navFile.exists(), "ProfileNavigation.kt should exist")
+            val navFile = File(tempDir, "feature/profile/src/main/kotlin/com/test/featureapp/feature/profile/ProfileRoute.kt")
+            assertTrue(navFile.exists(), "ProfileRoute.kt should exist")
 
             val settingsFile = File(tempDir, "settings.gradle.kts")
             assertTrue(settingsFile.readText().contains(":feature:profile"))
@@ -211,8 +213,33 @@ class CommandsTest {
 
             val dataModuleFile = File(tempDir, "core/data/src/main/kotlin/com/test/entityapp/core/data/DataModule.kt")
             assertTrue(dataModuleFile.readText().contains("bindsProductRepository"))
+
+            // Duplicate entity without --force must fail
+            assertFailsWith<Exception> {
+                eu.andrer757.kickoff.cli.AddEntityCommand().parse(listOf("-n", "Product", "-d", tempDir.absolutePath))
+            }
+
+            // Duplicate entity with --force succeeds
+            eu.andrer757.kickoff.cli.AddEntityCommand().parse(listOf("-n", "Product", "--force", "-d", tempDir.absolutePath))
         } finally {
             tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `add entity rejects path traversal and non-identifier names`() {
+        val parentDir = createTempDirectory("kickoff-traversal-parent").toFile()
+        val projectDir = File(parentDir, "project")
+        try {
+            ProjectGenerator().generate(
+                ProjectConfig("App", "com.test.secapp", projectDir.absolutePath, getTemplateDir().absolutePath, aiEnvironments = setOf("none"), gitInit = false)
+            )
+            assertFailsWith<Exception> {
+                eu.andrer757.kickoff.cli.AddEntityCommand().parse(listOf("-n", "../Sibling", "-d", projectDir.absolutePath))
+            }
+            assertFalse(File(parentDir, "Sibling.kt").exists())
+        } finally {
+            parentDir.deleteRecursively()
         }
     }
 }

@@ -7,6 +7,7 @@ import ${configs.packageName}.core.datastore.UserPreferencesDataSource
 import ${configs.packageName}.core.model.User
 import ${configs.packageName}.core.network.ApiService
 import app.cash.turbine.test
+import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,7 +32,7 @@ class OfflineFirstUserRepositoryTest {
     private val fakeApi = object : ApiService {
         var throwError: Boolean = false
         override suspend fun getUsers(): List<User> {
-            if (throwError) throw RuntimeException("Network error")
+            if (throwError) throw IOException("Network error")
             return listOf(User(id = "1", name = "Test User", email = "test@example.com"))
         }
     }

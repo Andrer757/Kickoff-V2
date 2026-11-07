@@ -4,8 +4,50 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 BIN="$DIR/kickoff-cli/build/install/kickoff-cli/bin/kickoff-cli"
 
-if [ -z "$JAVA_HOME" ] && [ -d "$HOME/.jdks/temurin-21" ]; then
-    export JAVA_HOME="$HOME/.jdks/temurin-21"
+# Prints the major version of the given java binary (8, 17, 21, ...), or nothing.
+java_major() {
+    "$1" -version 2>&1 | awk -F'"' '/version/ { v = $2; sub(/^1\./, "", v); sub(/[^0-9].*/, "", v); print v; exit }'
+}
+
+# Succeeds when the given directory is a supported JDK (21 to 23 for Gradle 8.12 + Kotlin 2.0.21).
+is_jdk21() {
+    [ -x "$1/bin/java" ] || return 1
+    major="$(java_major "$1/bin/java")"
+    [ -n "$major" ] && [ "$major" -ge 21 ] && [ "$major" -le 23 ]
+}
+
+# The CLI and Gradle 8.12 need JDK 21 (21-23). Use the java that the start script would pick
+# (JAVA_HOME, else java on PATH) when it is in range, otherwise look for one.
+if [ -n "$JAVA_HOME" ]; then
+    CURRENT_JAVA="$JAVA_HOME/bin/java"
+else
+    CURRENT_JAVA="$(command -v java || true)"
+fi
+CURRENT_MAJOR=""
+if [ -n "$CURRENT_JAVA" ] && [ -x "$CURRENT_JAVA" ]; then
+    CURRENT_MAJOR="$(java_major "$CURRENT_JAVA")"
+fi
+
+if [ -z "$CURRENT_MAJOR" ] || [ "$CURRENT_MAJOR" -lt 21 ] || [ "$CURRENT_MAJOR" -gt 23 ]; then
+    FOUND_JDK=""
+    for candidate in "$HOME"/.jdks/temurin-21* "$HOME"/.jdks/* "$HOME"/.jdks/*/Contents/Home; do
+        if is_jdk21 "$candidate"; then
+            FOUND_JDK="$candidate"
+            break
+        fi
+    done
+    if [ -z "$FOUND_JDK" ] && [ -x /usr/libexec/java_home ]; then
+        candidate="$(/usr/libexec/java_home -v 21 2>/dev/null || /usr/libexec/java_home -v 21+ 2>/dev/null || true)"
+        if [ -n "$candidate" ] && is_jdk21 "$candidate"; then
+            FOUND_JDK="$candidate"
+        fi
+    fi
+    if [ -z "$FOUND_JDK" ]; then
+        echo "kickoff: JDK 21 (21-23) is required, but found ${CURRENT_JAVA:-no java} (version ${CURRENT_MAJOR:-unknown})." >&2
+        echo "Install Temurin 21 and point JAVA_HOME at it, or put it under ~/.jdks/." >&2
+        exit 1
+    fi
+    export JAVA_HOME="$FOUND_JDK"
 fi
 
 if [ "$1" = "--rebuild" ]; then

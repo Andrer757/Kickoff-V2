@@ -15,6 +15,5 @@ Kickoff is a deterministic CLI project scaffolding tool and Gradle quality plugi
 - **CLI Executable**: `./kickoff new --name "<Name>" --package "<Package>" --output "<Dir>" [--json]`
 
 ## Project Skills
-The following domain skill packs are installed in `.agents/skills/`:
+The following domain skill pack is installed in `.agents/skills/`:
 - `kickoff-scaffold`: Scaffolding commands, CLI parameters, and machine-readable output schemas for generating Android projects.
-- `android`: Android architecture, components, Gradle configs, testing, and best practices.

@@ -28,7 +28,7 @@ abstract class VerifyArchitectureTask : DefaultTask() {
             if (config.name in setOf("implementation", "api", "compileOnly", "runtimeOnly")) {
                 for (dep in config.dependencies) {
                     if (dep is ProjectDependency) {
-                        dependentProjectPaths.add(dep.dependencyProject.path)
+                        dependentProjectPaths.add(dep.path)
                     } else if (dep.group != null) {
                         externalDeps.add("${dep.group}:${dep.name}")
                     }

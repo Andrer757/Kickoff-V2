@@ -20,7 +20,9 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 defaultConfig {
                     minSdk = ${configs.minSdk}
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-                    consumerProguardFiles("consumer-rules.pro")
+                    if (project.file("consumer-rules.pro").exists()) {
+                        consumerProguardFiles("consumer-rules.pro")
+                    }
                 }
 
                 buildTypes {

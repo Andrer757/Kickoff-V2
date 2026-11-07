@@ -8,6 +8,7 @@ import app.cash.turbine.test
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
@@ -34,8 +35,8 @@ class HomeViewModelTest {
         viewModel.uiState.test {
             val item = awaitItem()
             // May start with Loading or immediately emit Success depending on dispatcher
-            val successState = if (item is HomeUiState.Loading) awaitItem() else item
-            assertTrue(successState is HomeUiState.Success)
+            val state = if (item is HomeUiState.Loading) awaitItem() else item
+            val successState = assertInstanceOf(HomeUiState.Success::class.java, state)
             assertEquals(1, successState.users.size)
             assertTrue(successState.isOnline)
             assertFalse(successState.isDarkMode)

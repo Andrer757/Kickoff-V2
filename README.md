@@ -56,7 +56,7 @@ Kickoff-V2/
 ## Quickstart
 
 ### Prerequisites
-- **JDK 17 or JDK 21** (Eclipse Temurin 21 recommended)
+- **JDK 21** (Eclipse Temurin 21 recommended; JDK 17 cannot build or run Kickoff)
 - **Android SDK** (API 35 SDK installed)
 
 ### 1. Install Kickoff CLI

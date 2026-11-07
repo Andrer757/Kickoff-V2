@@ -34,6 +34,9 @@ class ProjectGenerator {
         if (config.projectName.isBlank()) {
             return "Project name cannot be blank."
         }
+        if (config.projectName.any { it.isISOControl() }) {
+            return "Project name cannot contain control characters or newlines."
+        }
 
         val packageValidation = validatePackageName(config.packageName)
         if (packageValidation != null) {
@@ -46,6 +49,10 @@ class ProjectGenerator {
 
         if (config.targetSdk < config.minSdk) {
             return "targetSdk (${config.targetSdk}) cannot be less than minSdk (${config.minSdk})."
+        }
+
+        if (config.targetSdk > 35) {
+            return "targetSdk (${config.targetSdk}) cannot exceed template compileSdk (35)."
         }
 
         if (config.projectType !in setOf("app", "sdk")) {
@@ -169,7 +176,7 @@ class ProjectGenerator {
                 if (it.exists()) it else File(templateDir.parentFile, "now-in-android/.agents")
             }
             if (canonicalAgents.exists()) {
-                AiKitSynthesizer().synthesize(canonicalAgents, targetDir, selectedAi)
+                AiKitSynthesizer().synthesize(canonicalAgents, targetDir, selectedAi, config.engram)
             }
 
             // Embed quality-verifier in composite build (build-logic/quality-verifier) for zero mavenLocal reliance
@@ -225,7 +232,10 @@ class ProjectGenerator {
         val targetQvDir = File(targetDir, "build-logic/quality-verifier")
         targetQvDir.mkdirs()
 
-        File(qvSource, "build.gradle.kts").copyTo(File(targetQvDir, "build.gradle.kts"), overwrite = true)
+        File(targetQvDir, "build.gradle.kts").writeText(
+            toEmbeddedBuildScript(File(qvSource, "build.gradle.kts").readText(Charsets.UTF_8)),
+            Charsets.UTF_8
+        )
         val srcMain = File(qvSource, "src/main")
         if (srcMain.exists()) {
             srcMain.copyRecursively(File(targetQvDir, "src/main"), overwrite = true)
@@ -245,6 +255,40 @@ class ProjectGenerator {
             """.trimIndent() + "\n",
             Charsets.UTF_8
         )
+    }
+
+    /**
+     * The upstream quality-verifier build script carries Maven Central publishing setup
+     * (nmcp, signing, POM). Its nmcp plugin version is declared in Kickoff's own settings file,
+     * so inside a generated project the plugin cannot resolve and Gradle configuration fails.
+     * The embedded copy only needs to compile the plugin, so publishing concerns are removed.
+     */
+    internal fun toEmbeddedBuildScript(source: String): String {
+        val publishingPlugins = Regex("""^\s*(id\("com\.gradleup\.nmcp"\)|`maven-publish`|signing)\s*$""")
+        val withoutPlugins = source.lines().filterNot { publishingPlugins.matches(it) }.joinToString("\n")
+        val withoutBlocks = listOf("publishing", "signing", "java", "nmcp").fold(withoutPlugins) { acc, block ->
+            removeTopLevelBlock(acc, block)
+        }
+        return withoutBlocks.replace(Regex("\n{3,}"), "\n\n").trim() + "\n"
+    }
+
+    private fun removeTopLevelBlock(source: String, name: String): String {
+        val start = Regex("""(?m)^$name\s*\{""").find(source) ?: return source
+        var depth = 0
+        var index = start.range.last
+        while (index < source.length) {
+            when (source[index]) {
+                '{' -> depth++
+                '}' -> {
+                    depth--
+                    if (depth == 0) {
+                        return source.removeRange(start.range.first, index + 1)
+                    }
+                }
+            }
+            index++
+        }
+        return source
     }
 
     private fun initializeGitRepository(targetDir: File) {
@@ -290,6 +334,8 @@ class ProjectGenerator {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&apos;")
+                .replace("\${", "\\\${")
+                .let { if (it.startsWith("@") || it.startsWith("?")) "\\$it" else it }
             "json" -> config.projectName
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")

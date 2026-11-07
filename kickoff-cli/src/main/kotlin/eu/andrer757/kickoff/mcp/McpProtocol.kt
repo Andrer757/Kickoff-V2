@@ -2,6 +2,7 @@ package eu.andrer757.kickoff.mcp
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 
 @Serializable
@@ -15,7 +16,8 @@ data class JsonRpcRequest(
 @Serializable
 data class JsonRpcResponse(
     val jsonrpc: String = "2.0",
-    val id: JsonElement? = null,
+    // JSON-RPC requires "id" on every response (null for parse errors), so it is never omitted.
+    val id: JsonElement = JsonNull,
     val result: JsonElement? = null,
     val error: JsonRpcError? = null
 )

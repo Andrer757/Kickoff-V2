@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
-import kotlin.system.exitProcess
+import com.github.ajalt.clikt.core.ProgramResult
 
 @Serializable
 data class AddResult(
@@ -36,20 +36,38 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
         if (root == null || !root.exists()) {
             val res = AddResult("error", "Kickoff project root not found (settings.gradle.kts missing).")
             if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
-            exitProcess(1)
+            throw ProgramResult(1)
+        }
+
+        if (ProjectUtils.isSdkProject(root)) {
+            val res = AddResult("error", "Cannot add an app feature module to an SDK project. Use 'kickoff add module --type sdk' instead.")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
+
+        if (!ProjectUtils.isValidIdentifier(name)) {
+            val res = AddResult("error", "Invalid feature name '$name'. Must start with a letter and contain only letters, digits, underscores, or hyphens (and not be a Kotlin keyword).")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
         }
 
         val packageName = ProjectUtils.detectPackageName(root) ?: "com.example.app"
         val packagePath = packageName.replace('.', File.separatorChar)
 
         val slug = name.lowercase().replace(Regex("[^a-z0-9_-]"), "-").trim('-')
-        val pascalCase = slug.split('-', '_').joinToString("") { it.replaceFirstChar(Char::titlecase) }
+        val pkgSegment = slug.replace("-", "").replace("_", "")
+        val pascalCase = slug.split('-', '_').filter { it.isNotEmpty() }.joinToString("") { it.replaceFirstChar(Char::titlecase) }
 
         val featureDir = File(root, "feature/$slug")
+        if (!ProjectUtils.isContainedIn(root, featureDir)) {
+            val res = AddResult("error", "Invalid feature path: target escapes project root.")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
         if (featureDir.exists()) {
             val res = AddResult("error", "Feature directory 'feature/$slug' already exists.")
             if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
-            exitProcess(1)
+            throw ProgramResult(1)
         }
 
         val createdFiles = mutableListOf<String>()
@@ -66,7 +84,7 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
             }
 
             android {
-                namespace = "$packageName.feature.$slug"
+                namespace = "$packageName.feature.$pkgSegment"
             }
 
             dependencies {
@@ -77,13 +95,13 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
         createdFiles.add(buildFile.absolutePath)
 
         // 2. Create Screen, ViewModel, and Navigation Route
-        val srcDir = File(featureDir, "src/main/kotlin/$packagePath/feature/$slug")
+        val srcDir = File(featureDir, "src/main/kotlin/$packagePath/feature/$pkgSegment")
         srcDir.mkdirs()
 
-        val navFile = File(srcDir, "${pascalCase}Navigation.kt")
+        val navFile = File(srcDir, "${pascalCase}Route.kt")
         navFile.writeText(
             """
-            package $packageName.feature.$slug
+            package $packageName.feature.$pkgSegment
 
             import kotlinx.serialization.Serializable
 
@@ -96,7 +114,7 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
         val screenFile = File(srcDir, "${pascalCase}Screen.kt")
         screenFile.writeText(
             """
-            package $packageName.feature.$slug
+            package $packageName.feature.$pkgSegment
 
             import androidx.compose.foundation.layout.Arrangement
             import androidx.compose.foundation.layout.Column
@@ -113,14 +131,21 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
 
             @Composable
             fun ${pascalCase}Route(
+                modifier: Modifier = Modifier,
                 viewModel: ${pascalCase}ViewModel = hiltViewModel()
             ) {
-                ${pascalCase}Screen(name = "${pascalCase}")
+                ${pascalCase}Screen(
+                    name = "$pascalCase",
+                    modifier = modifier
+                )
             }
 
             @Composable
-            fun ${pascalCase}Screen(name: String) {
-                Scaffold { padding ->
+            fun ${pascalCase}Screen(
+                name: String,
+                modifier: Modifier = Modifier
+            ) {
+                Scaffold(modifier = modifier) { padding ->
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -130,7 +155,7 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "$pascalCase Screen",
+                            text = "${'$'}name Screen",
                             style = MaterialTheme.typography.headlineMedium
                         )
                     }
@@ -143,27 +168,25 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
         val vmFile = File(srcDir, "${pascalCase}ViewModel.kt")
         vmFile.writeText(
             """
-            package $packageName.feature.$slug
+            package $packageName.feature.$pkgSegment
 
             import androidx.lifecycle.ViewModel
             import dagger.hilt.android.lifecycle.HiltViewModel
             import javax.inject.Inject
 
             @HiltViewModel
-            class ${pascalCase}ViewModel @Inject constructor() : ViewModel() {
-                // ViewModel state management
-            }
+            class ${pascalCase}ViewModel @Inject constructor() : ViewModel()
             """.trimIndent() + "\n"
         )
         createdFiles.add(vmFile.absolutePath)
 
         // 3. Create unit test
-        val testDir = File(featureDir, "src/test/kotlin/$packagePath/feature/$slug")
+        val testDir = File(featureDir, "src/test/kotlin/$packagePath/feature/$pkgSegment")
         testDir.mkdirs()
         val testFile = File(testDir, "${pascalCase}ViewModelTest.kt")
         testFile.writeText(
             """
-            package $packageName.feature.$slug
+            package $packageName.feature.$pkgSegment
 
             import org.junit.jupiter.api.Assertions.assertNotNull
             import org.junit.jupiter.api.Test
@@ -209,7 +232,7 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
         val mainActivityFile = File(root, "app/src/main/kotlin/$packagePath/MainActivity.kt")
         if (mainActivityFile.exists()) {
             var activityText = mainActivityFile.readText()
-            val importLine = "import $packageName.feature.$slug.${pascalCase}Route"
+            val importLine = "import $packageName.feature.$pkgSegment.${pascalCase}Route"
             if (!activityText.contains(importLine)) {
                 activityText = activityText.replaceFirst(
                     "package $packageName",
@@ -217,20 +240,34 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
                 )
             }
 
-            val composableBlock = """
-                    composable<${pascalCase}Route> {
-                        ${pascalCase}Route()
-                    }
-            """.trimIndent()
+            val composableBlock = "                    composable<${pascalCase}Route> {\n                        ${pascalCase}Route()\n                    }"
 
             if (!activityText.contains("<${pascalCase}Route>")) {
-                val navHostPattern = Regex("""(composable<[^>]+>\s*\{[^}]*\}\s*)""")
-                val lastMatch = navHostPattern.findAll(activityText).lastOrNull()
-                if (lastMatch != null) {
-                    val insertPos = lastMatch.range.last + 1
-                    activityText = activityText.substring(0, insertPos) + "\n                    $composableBlock" + activityText.substring(insertPos)
-                    mainActivityFile.writeText(activityText)
-                    modifiedFiles.add(mainActivityFile.absolutePath)
+                val navHostIdx = activityText.indexOf("NavHost(")
+                if (navHostIdx != -1) {
+                    var depth = 0
+                    var i = activityText.indexOf('{', navHostIdx)
+                    var navHostCloseIdx = -1
+                    while (i in 0 until activityText.length) {
+                        when (activityText[i]) {
+                            '{' -> depth++
+                            '}' -> {
+                                depth--
+                                if (depth == 0) {
+                                    navHostCloseIdx = i
+                                    break
+                                }
+                            }
+                        }
+                        i++
+                    }
+                    if (navHostCloseIdx != -1) {
+                        val beforeClose = activityText.substring(0, navHostCloseIdx).trimEnd()
+                        val afterClose = activityText.substring(navHostCloseIdx)
+                        activityText = "$beforeClose\n$composableBlock\n                $afterClose"
+                        mainActivityFile.writeText(activityText)
+                        modifiedFiles.add(mainActivityFile.absolutePath)
+                    }
                 }
             }
         }
@@ -267,7 +304,13 @@ class AddModuleCommand : CliktCommand(name = "module") {
         if (root == null || !root.exists()) {
             val res = AddResult("error", "Kickoff project root not found (settings.gradle.kts missing).")
             if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
-            exitProcess(1)
+            throw ProgramResult(1)
+        }
+
+        if (!ProjectUtils.isValidIdentifier(name)) {
+            val res = AddResult("error", "Invalid module name '$name'. Must start with a letter and contain only letters, digits, underscores, or hyphens (and not be a Kotlin keyword).")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
         }
 
         val isSdk = ProjectUtils.isSdkProject(root) || type.lowercase() == "sdk"
@@ -275,16 +318,22 @@ class AddModuleCommand : CliktCommand(name = "module") {
         val packagePath = packageName.replace('.', File.separatorChar)
 
         val slug = name.lowercase().replace(Regex("[^a-z0-9_-]"), "-").trim('-')
-        val pascalCase = slug.split('-', '_').joinToString("") { it.replaceFirstChar(Char::titlecase) }
+        val pkgSegment = slug.replace("-", "").replace("_", "")
+        val pascalCase = slug.split('-', '_').filter { it.isNotEmpty() }.joinToString("") { it.replaceFirstChar(Char::titlecase) }
 
         val modulePath = if (isSdk) "sdk-$slug" else "core/$slug"
         val moduleGradlePath = if (isSdk) ":sdk-$slug" else ":core:$slug"
 
         val moduleDir = File(root, modulePath)
+        if (!ProjectUtils.isContainedIn(root, moduleDir)) {
+            val res = AddResult("error", "Invalid module path: target escapes project root.")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
         if (moduleDir.exists()) {
             val res = AddResult("error", "Module directory '$modulePath' already exists.")
             if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
-            exitProcess(1)
+            throw ProgramResult(1)
         }
 
         val createdFiles = mutableListOf<String>()
@@ -302,7 +351,7 @@ class AddModuleCommand : CliktCommand(name = "module") {
             }
 
             android {
-                namespace = "$packageName.sdk.$slug"
+                namespace = "$packageName.sdk.$pkgSegment"
             }
 
             dependencies {
@@ -319,7 +368,7 @@ class AddModuleCommand : CliktCommand(name = "module") {
             $composePlugin}
 
             android {
-                namespace = "$packageName.core.$slug"
+                namespace = "$packageName.core.$pkgSegment"
             }
 
             dependencies {
@@ -335,7 +384,7 @@ class AddModuleCommand : CliktCommand(name = "module") {
             val rulesFile = File(moduleDir, "consumer-rules.pro")
             rulesFile.writeText(
                 """
-                -keep public class $packageName.sdk.$slug.** {
+                -keep public class $packageName.sdk.$pkgSegment.** {
                     public protected *;
                 }
                 """.trimIndent() + "\n"
@@ -344,7 +393,7 @@ class AddModuleCommand : CliktCommand(name = "module") {
         }
 
         // 2. Starter source class
-        val pkgSub = if (isSdk) "sdk.$slug" else "core.$slug"
+        val pkgSub = if (isSdk) "sdk.$pkgSegment" else "core.$pkgSegment"
         val srcDir = File(moduleDir, "src/main/kotlin/$packagePath/${pkgSub.replace('.', File.separatorChar)}")
         srcDir.mkdirs()
         val classFile = File(srcDir, "${pascalCase}.kt")
@@ -424,6 +473,7 @@ class AddEntityCommand : CliktCommand(name = "entity") {
     private val name by option("-n", "--name", help = "Entity name (e.g. Article, Product, Note)").required()
     private val fields by option("-f", "--fields", help = "Fields as name:Type (e.g. id:String,title:String)").default("id:String,title:String")
     private val projectDir by option("-d", "--project-dir", help = "Project root directory").default("")
+    private val force by option("--force", help = "Overwrite existing entity files if present").flag(default = false)
     private val json by option("--json", help = "Output result as structured JSON").flag(default = false)
 
     private val jsonSerializer = Json { prettyPrint = true }
@@ -433,13 +483,25 @@ class AddEntityCommand : CliktCommand(name = "entity") {
         if (root == null || !root.exists()) {
             val res = AddResult("error", "Kickoff project root not found (settings.gradle.kts missing).")
             if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
-            exitProcess(1)
+            throw ProgramResult(1)
+        }
+
+        if (ProjectUtils.isSdkProject(root)) {
+            val res = AddResult("error", "Cannot add a Room entity to an SDK project.")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
+
+        if (!name.trim().matches(Regex("^[A-Za-z][A-Za-z0-9]*$")) || !ProjectUtils.isValidIdentifier(name)) {
+            val res = AddResult("error", "Invalid entity name '$name'. Must be a valid alphanumeric Kotlin class identifier (e.g. Article, UserProfile).")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
         }
 
         val packageName = ProjectUtils.detectPackageName(root) ?: "com.example.app"
         val packagePath = packageName.replace('.', File.separatorChar)
 
-        val entityName = name.replaceFirstChar(Char::titlecase)
+        val entityName = name.trim().replaceFirstChar(Char::titlecase)
         val entityLower = entityName.replaceFirstChar(Char::lowercase)
         val tableName = "${entityLower}s"
 
@@ -450,33 +512,53 @@ class AddEntityCommand : CliktCommand(name = "entity") {
             fName to fType
         }
 
+        val modelDir = File(root, "core/model/src/main/kotlin/$packagePath/core/model")
+        val dbDir = File(root, "core/database/src/main/kotlin/$packagePath/core/database")
+        val dataDir = File(root, "core/data/src/main/kotlin/$packagePath/core/data")
+
+        val modelFile = File(modelDir, "$entityName.kt")
+        val entityFile = File(dbDir, "${entityName}Entity.kt")
+        val daoFile = File(dbDir, "${entityName}Dao.kt")
+        val repoFile = File(dataDir, "${entityName}Repository.kt")
+        val implFile = File(dataDir, "OfflineFirst${entityName}Repository.kt")
+
+        val targetFiles = listOf(modelFile, entityFile, daoFile, repoFile, implFile)
+        if (targetFiles.any { !ProjectUtils.isContainedIn(root, it) }) {
+            val res = AddResult("error", "Invalid entity path: target escapes project root.")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
+
+        val existing = targetFiles.filter { it.exists() }
+        if (existing.isNotEmpty() && !force) {
+            val res = AddResult("error", "Entity '$entityName' already exists (${existing.first().name}). Pass --force to overwrite.")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
+
         val createdFiles = mutableListOf<String>()
         val modifiedFiles = mutableListOf<String>()
 
         // 1. Domain Model in :core:model
-        val modelDir = File(root, "core/model/src/main/kotlin/$packagePath/core/model")
         if (modelDir.exists()) {
-            val modelFile = File(modelDir, "$entityName.kt")
             val fieldsKotlin = parsedFields.joinToString(",\n    ") { (fName, fType) -> "val $fName: $fType" }
             modelFile.writeText(
-                """
-                package $packageName.core.model
-
-                import kotlinx.serialization.Serializable
-
-                @Serializable
-                data class $entityName(
-                    $fieldsKotlin
-                )
-                """.trimIndent() + "\n"
+                buildString {
+                    appendLine("package $packageName.core.model")
+                    appendLine()
+                    appendLine("import kotlinx.serialization.Serializable")
+                    appendLine()
+                    appendLine("@Serializable")
+                    appendLine("data class $entityName(")
+                    appendLine("    $fieldsKotlin")
+                    appendLine(")")
+                }
             )
             createdFiles.add(modelFile.absolutePath)
         }
 
         // 2. Room Entity & DAO in :core:database
-        val dbDir = File(root, "core/database/src/main/kotlin/$packagePath/core/database")
         if (dbDir.exists()) {
-            val entityFile = File(dbDir, "${entityName}Entity.kt")
             val entityFields = parsedFields.mapIndexed { idx, (fName, fType) ->
                 if (idx == 0) "@PrimaryKey val $fName: $fType" else "val $fName: $fType"
             }.joinToString(",\n    ")
@@ -485,30 +567,29 @@ class AddEntityCommand : CliktCommand(name = "entity") {
             val toEntityMapping = parsedFields.joinToString(",\n    ") { (fName, _) -> "$fName = $fName" }
 
             entityFile.writeText(
-                """
-                package $packageName.core.database
-
-                import androidx.room.Entity
-                import androidx.room.PrimaryKey
-                import $packageName.core.model.$entityName
-
-                @Entity(tableName = "$tableName")
-                data class ${entityName}Entity(
-                    $entityFields
-                )
-
-                fun ${entityName}Entity.asExternalModel(): $entityName = $entityName(
-                    $toDomainMapping
-                )
-
-                fun $entityName.asEntity(): ${entityName}Entity = ${entityName}Entity(
-                    $toEntityMapping
-                )
-                """.trimIndent() + "\n"
+                buildString {
+                    appendLine("package $packageName.core.database")
+                    appendLine()
+                    appendLine("import androidx.room.Entity")
+                    appendLine("import androidx.room.PrimaryKey")
+                    appendLine("import $packageName.core.model.$entityName")
+                    appendLine()
+                    appendLine("@Entity(tableName = \"$tableName\")")
+                    appendLine("data class ${entityName}Entity(")
+                    appendLine("    $entityFields")
+                    appendLine(")")
+                    appendLine()
+                    appendLine("fun ${entityName}Entity.asExternalModel(): $entityName = $entityName(")
+                    appendLine("    $toDomainMapping")
+                    appendLine(")")
+                    appendLine()
+                    appendLine("fun $entityName.asEntity(): ${entityName}Entity = ${entityName}Entity(")
+                    appendLine("    $toEntityMapping")
+                    appendLine(")")
+                }
             )
             createdFiles.add(entityFile.absolutePath)
 
-            val daoFile = File(dbDir, "${entityName}Dao.kt")
             daoFile.writeText(
                 """
                 package $packageName.core.database
@@ -536,10 +617,14 @@ class AddEntityCommand : CliktCommand(name = "entity") {
             if (appDbFile.exists()) {
                 var dbText = appDbFile.readText()
                 if (!dbText.contains("${entityName}Entity::class")) {
-                    dbText = dbText.replaceFirst(
-                        Regex("""entities\s*=\s*\[([^\]]*)\]"""),
-                        "entities = [$1, ${entityName}Entity::class]"
-                    )
+                    dbText = Regex("""entities\s*=\s*\[([^\]]*)\]""").replace(dbText) { matchResult ->
+                        val existingEntities = matchResult.groupValues[1]
+                            .split(",")
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() }
+                        val updatedEntities = (existingEntities + "${entityName}Entity::class").joinToString(", ")
+                        "entities = [$updatedEntities]"
+                    }
                 }
                 if (!dbText.contains("fun ${entityLower}Dao()")) {
                     dbText = dbText.replaceFirst(
@@ -564,9 +649,7 @@ class AddEntityCommand : CliktCommand(name = "entity") {
         }
 
         // 3. Repository in :core:data
-        val dataDir = File(root, "core/data/src/main/kotlin/$packagePath/core/data")
         if (dataDir.exists()) {
-            val repoFile = File(dataDir, "${entityName}Repository.kt")
             repoFile.writeText(
                 """
                 package $packageName.core.data
@@ -582,7 +665,6 @@ class AddEntityCommand : CliktCommand(name = "entity") {
             )
             createdFiles.add(repoFile.absolutePath)
 
-            val implFile = File(dataDir, "OfflineFirst${entityName}Repository.kt")
             implFile.writeText(
                 """
                 package $packageName.core.data

@@ -30,6 +30,7 @@ class NewCommand : CliktCommand(name = "new") {
     private val targetSdk by option("--target-sdk", help = "Target SDK API level").int().default(35)
     private val ai by option("--ai", help = "Target AI environment: copilot, claude, cursor, generic, antigravity, all, none (supports comma-separated)").default("all")
     private val git by option("--git", help = "Initialize git repository").flag("--no-git", default = true)
+    private val engram by option("--engram", help = "Opt in to Engram MCP memory (generates MCP configs; agents default to file-based state)").flag(default = false)
     private val json by option("--json", help = "Output result as structured JSON").flag(default = false)
 
     private val jsonSerializer = Json { prettyPrint = true }
@@ -64,7 +65,8 @@ class NewCommand : CliktCommand(name = "new") {
             targetSdk = targetSdk,
             aiEnvironments = if (aiSet.isEmpty()) setOf("all") else aiSet,
             projectType = type.lowercase(),
-            gitInit = git
+            gitInit = git,
+            engram = engram
         )
 
         val result = ProjectGenerator().generate(config)

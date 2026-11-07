@@ -11,6 +11,7 @@ public interface SdkClient {
     public fun shutdown(): Unit
 
     public companion object {
+        @OptIn(InternalSdkApi::class)
         public fun create(context: Context, config: SdkConfig): SdkClient {
             return InternalSdkClient(context.applicationContext, config)
         }

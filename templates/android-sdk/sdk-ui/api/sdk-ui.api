@@ -13,3 +13,4 @@ public final class ${configs.packageName}/sdk/ui/SdkBannerState {
 public final class ${configs.packageName}/sdk/ui/SdkStatusBannerKt {
 	public static final fun SdkStatusBanner (L${configs.packageName}/sdk/ui/SdkBannerState;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
+

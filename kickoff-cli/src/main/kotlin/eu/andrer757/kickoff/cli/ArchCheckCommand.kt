@@ -40,10 +40,13 @@ object ArchChecker {
         }
 
         val settingsText = settingsFile.readText()
-        val moduleRegex = Regex("""include\("([^"]+)"""")
-        val modules = moduleRegex.findAll(settingsText).map { it.groupValues[1] }.toList()
+        val includeBlockRegex = Regex("""include\(([^)]+)\)""")
+        val stringLiteralRegex = Regex(""""([^"]+)"""")
+        val modules = includeBlockRegex.findAll(settingsText)
+            .flatMap { block -> stringLiteralRegex.findAll(block.groupValues[1]).map { it.groupValues[1] } }
+            .toList()
 
-        val isSdk = modules.any { it.startsWith(":sdk-") }
+        val isSdk = ProjectUtils.isSdkProject(projectRoot)
         val violations = mutableListOf<ArchViolation>()
 
         for (module in modules) {
@@ -52,7 +55,7 @@ object ArchChecker {
             if (!buildFile.exists()) continue
 
             val content = buildFile.readText()
-            val depRegex = Regex("""(?:implementation|api|compileOnly|runtimeOnly)\s*\(\s*project\("([^"]+)"\)\s*\)""")
+            val depRegex = Regex("""(?:implementation|api|compileOnly|runtimeOnly|ksp)\s*\(\s*project\("([^"]+)"\)\s*\)""")
             val dependencies = depRegex.findAll(content).map { it.groupValues[1] }.toSet()
 
             if (module == ":sdk-core" && (content.contains("kickoff.android.hilt") || content.contains("libs.hilt.") || content.contains("com.google.dagger:hilt"))) {

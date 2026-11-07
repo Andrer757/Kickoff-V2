@@ -75,21 +75,24 @@ class HomeViewModel @Inject constructor(
 
 @Composable
 fun HomeRoute(
+    modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(
         uiState = uiState,
-        onToggleDarkMode = viewModel::toggleDarkMode
+        onToggleDarkMode = viewModel::toggleDarkMode,
+        modifier = modifier
     )
 }
 
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
-    onToggleDarkMode: (Boolean) -> Unit = {}
+    onToggleDarkMode: (Boolean) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
-    Scaffold { padding ->
+    Scaffold(modifier = modifier) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

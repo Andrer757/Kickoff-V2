@@ -65,9 +65,18 @@ class ProjectGeneratorTest {
             assertTrue(appConventionContent.contains("minSdk = 28"))
             assertTrue(appConventionContent.contains("targetSdk = 35"))
 
+            // Check the Gradle daemon is pinned to JDK 21
+            val daemonJvm = File(tempDir, "gradle/gradle-daemon-jvm.properties")
+            assertTrue(daemonJvm.exists(), "gradle-daemon-jvm.properties should be copied")
+            assertTrue("toolchainVersion=21" in daemonJvm.readLines())
+
             // Check .gitignore exists in target
             val gitignore = File(tempDir, ".gitignore")
             assertTrue(gitignore.exists(), ".gitignore should exist in generated project")
+            val gitignoreLines = gitignore.readLines()
+            assertTrue("**/build/" in gitignoreLines, "module build directories should be ignored")
+            assertTrue(".kotlin/" in gitignoreLines, "Kotlin 2 .kotlin/ directory should be ignored")
+            assertFalse("schemas/" in gitignoreLines, "Room schemas must stay tracked")
 
             // Check AI directories exist for 'all'
             assertTrue(File(tempDir, ".claude/agents").exists())
@@ -75,6 +84,36 @@ class ProjectGeneratorTest {
             assertTrue(File(tempDir, ".cursor/rules").exists())
             assertTrue(File(tempDir, ".agents/agents").exists())
             assertTrue(File(tempDir, "scripts/setup-ai.sh").exists())
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `embedded quality-verifier has no publishing setup`() {
+        val tempDir = createTempDirectory("kickoff-test-qv").toFile()
+        try {
+            val config = ProjectConfig(
+                projectName = "QV App",
+                packageName = "com.test.qv",
+                outputDir = tempDir.absolutePath,
+                templateDir = getTemplateDir().absolutePath,
+                aiEnvironments = setOf("none")
+            )
+
+            val result = ProjectGenerator().generate(config)
+            assertEquals("success", result.status)
+
+            val buildScript = File(tempDir, "build-logic/quality-verifier/build.gradle.kts")
+            assertTrue(buildScript.exists(), "quality-verifier should be embedded")
+            val content = buildScript.readText()
+            listOf("com.gradleup.nmcp", "maven-publish", "signing", "publishing", "withJavadocJar").forEach {
+                assertFalse(content.contains(it), "Embedded quality-verifier must not contain '$it':\n$content")
+            }
+            assertTrue(content.contains("`kotlin-dsl`"))
+            assertTrue(content.contains("id = \"eu.andrer757.quality-verifier\""))
+            assertTrue(content.contains("detekt-gradle-plugin"))
+            assertTrue(File(tempDir, "build-logic/quality-verifier/src/main").exists())
         } finally {
             tempDir.deleteRecursively()
         }
@@ -289,10 +328,21 @@ class ProjectGeneratorTest {
             assertTrue(bcvFile.exists(), "BCV api file should exist")
             val bcvContent = bcvFile.readText()
             assertTrue(bcvContent.contains("com/test/paysdk/sdk/core/SdkClient"))
+            assertTrue(bcvContent.contains("public abstract interface annotation class com/test/paysdk/sdk/core/InternalSdkApi"))
+            assertTrue(bcvContent.contains("public abstract fun initialize-IoAF18A (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;"))
+            assertTrue(bcvContent.endsWith("}\n\n"), "BCV dumps end with a blank line")
+
+            val sdkClientSource = File(tempDir, "sdk-core/src/main/kotlin/com/test/paysdk/sdk/core/SdkClient.kt").readText()
+            assertTrue(sdkClientSource.contains("@OptIn(InternalSdkApi::class)"))
 
             // Verify entry points
             assertEquals("sdk-core/src/main/kotlin/com/test/paysdk/sdk/core/SdkClient.kt", result.entryPoints["sdkClient"])
             assertEquals("sample/src/main/kotlin/com/test/paysdk/sample/SampleMainActivity.kt", result.entryPoints["sampleActivity"])
+
+            // Verify the Gradle daemon is pinned to JDK 21
+            val daemonJvm = File(tempDir, "gradle/gradle-daemon-jvm.properties")
+            assertTrue(daemonJvm.exists(), "gradle-daemon-jvm.properties should be copied")
+            assertTrue("toolchainVersion=21" in daemonJvm.readLines())
 
             // Verify git repo was initialized
             assertTrue(File(tempDir, ".git").exists())

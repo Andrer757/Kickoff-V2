@@ -145,7 +145,7 @@ class QualityVerifierPlugin : Plugin<Project> {
     }
 
     private fun extractResource(project: Project, resourcePath: String, targetFileName: String): File {
-        val targetDir = File(project.layout.buildDirectory.asFile.get(), "quality-verifier")
+        val targetDir = File(project.rootProject.projectDir, ".gradle/quality-verifier")
         targetDir.mkdirs()
         val targetFile = File(targetDir, targetFileName)
 

@@ -12,6 +12,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SETUP_FAILED=0
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo ""
@@ -63,7 +64,13 @@ if command -v engram &> /dev/null; then
   echo -e "${GREEN}  ✓ Engram already installed${NC}"
 elif command -v brew &> /dev/null; then
   echo "  Installing Engram via Homebrew..."
-  brew install gentleman-programming/homebrew-tap/engram 2>/dev/null && echo -e "${GREEN}  ✓ Engram installed${NC}" || echo -e "${YELLOW}  ⚠ Engram install skipped${NC}"
+  if brew tap gentleman-programming/tap && brew install gentleman-programming/tap/engram; then
+    echo -e "${GREEN}  ✓ Engram installed${NC}"
+  else
+    SETUP_FAILED=1
+    echo -e "${RED}  ✗ Engram install failed (see the Homebrew output above).${NC}"
+    echo -e "${RED}    Install it manually: brew install gentleman-programming/tap/engram${NC}"
+  fi
 else
   echo -e "${YELLOW}  ⚠ Homebrew not found. Install engram manually if using MCP memory.${NC}"
 fi
@@ -101,7 +108,11 @@ SHARED_SKILLS="$PROJECT_ROOT/.agents/skills"
 
 echo ""
 echo "=============================================="
-echo -e "${GREEN}  ✓ AI Development Kit ready!${NC}"
+if [ "$SETUP_FAILED" -eq 0 ]; then
+  echo -e "${GREEN}  ✓ AI Development Kit ready!${NC}"
+else
+  echo -e "${RED}  ✗ AI Development Kit setup incomplete (see errors above)${NC}"
+fi
 echo "=============================================="
 echo ""
 echo "How to use with your preferred AI tool:"
@@ -115,3 +126,5 @@ echo ""
 echo "  • Cursor / Antigravity / Windsurf:"
 echo "      Skills in .agents/skills/ and .claude/skills/ are auto-discovered."
 echo ""
+
+exit "$SETUP_FAILED"

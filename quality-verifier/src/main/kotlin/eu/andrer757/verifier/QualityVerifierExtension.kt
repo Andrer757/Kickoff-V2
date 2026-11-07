@@ -11,7 +11,7 @@ open class QualityVerifierExtension @Inject constructor(objects: ObjectFactory) 
     val enableLint: Property<Boolean> = objects.property(Boolean::class.java).convention(true)
     val enableKover: Property<Boolean> = objects.property(Boolean::class.java).convention(true)
     val enableArchitectureCheck: Property<Boolean> = objects.property(Boolean::class.java).convention(true)
-    val abortOnError: Property<Boolean> = objects.property(Boolean::class.java).convention(false)
+    val abortOnError: Property<Boolean> = objects.property(Boolean::class.java).convention(true)
     val minCoveragePercent: Property<Int> = objects.property(Int::class.java).convention(0)
 
     val detektConfigFile: RegularFileProperty = objects.fileProperty()

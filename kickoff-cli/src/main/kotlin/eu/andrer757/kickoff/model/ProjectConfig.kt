@@ -12,7 +12,9 @@ data class ProjectConfig(
     val targetSdk: Int = 35,
     val aiEnvironments: Set<String> = setOf("all"),
     val projectType: String = "app",
-    val gitInit: Boolean = true
+    val gitInit: Boolean = true,
+    /** Opt-in Engram MCP memory. When false, agents keep pipeline state in git-tracked files. */
+    val engram: Boolean = false
 )
 
 @Serializable
