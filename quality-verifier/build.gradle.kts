@@ -61,10 +61,10 @@ signing {
 
 dependencies {
     compileOnly(gradleApi())
-    compileOnly("com.android.tools.build:gradle:8.8.0")
+    compileOnly("com.android.tools.build:gradle:9.5.1")
     implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
-    implementation("com.diffplug.spotless:spotless-plugin-gradle:7.0.2")
-    implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.1")
+    implementation("com.diffplug.spotless:spotless-plugin-gradle:8.11.0")
+    implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.11")
 
     testImplementation(kotlin("test"))
 }

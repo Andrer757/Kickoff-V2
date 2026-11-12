@@ -1,22 +1,23 @@
 [versions]
-agp = "8.8.0"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.28"
+agp = "9.5.1"
+kotlin = "2.4.21"
+ksp = "2.3.13"
 androidxActivity = "1.10.0"
-androidxComposeBom = "2024.12.01"
+androidxComposeBom = "2026.09.00"
 androidxCore = "1.15.0"
 androidxDataStore = "1.1.2"
-androidxLifecycle = "2.8.7"
-androidxNavigation = "2.8.5"
-androidxRoom = "2.6.1"
+androidxLifecycle = "2.11.0"
+androidxNavigation3 = "1.2.1"
+androidxRoom = "2.8.5"
 coroutine = "1.10.1"
-hilt = "2.54"
+hilt = "2.60.1"
 hiltNavigationCompose = "1.2.0"
 kotlinxSerializationJson = "1.8.0"
 okhttp = "4.12.0"
 retrofit = "2.11.0"
 qualityVerifier = "1.0.0"
 junit5 = "5.11.4"
+junitPlatform = "1.11.4"
 turbine = "1.2.0"
 
 [libraries]
@@ -34,7 +35,9 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 # Navigation & Lifecycle
-androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidxNavigation" }
+androidx-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "androidxNavigation3" }
+androidx-navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "androidxNavigation3" }
+androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "androidxLifecycle" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
 
@@ -70,13 +73,13 @@ room-gradlePlugin = { group = "androidx.room", name = "room-gradle-plugin", vers
 
 # Testing
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit5" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junitPlatform" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutine" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

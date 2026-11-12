@@ -20,6 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.navigation3.runtime.NavKey
 import ${configs.packageName}.core.connectivity.NetworkMonitor
 import ${configs.packageName}.core.data.UserRepository
 import ${configs.packageName}.core.model.User
@@ -33,7 +34,7 @@ import kotlinx.serialization.Serializable
 import javax.inject.Inject
 
 @Serializable
-data object HomeRoute
+data object HomeRoute : NavKey
 
 sealed interface HomeUiState {
     data object Loading : HomeUiState

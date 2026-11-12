@@ -103,10 +103,11 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
             """
             package $packageName.feature.$pkgSegment
 
+            import androidx.navigation3.runtime.NavKey
             import kotlinx.serialization.Serializable
 
             @Serializable
-            data object ${pascalCase}Route
+            data object ${pascalCase}Route : NavKey
             """.trimIndent() + "\n"
         )
         createdFiles.add(navFile.absolutePath)
@@ -253,10 +254,10 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
                 }
             }
 
-            val composableBlock = "                    composable<${pascalCase}Route> {\n                        ${pascalCase}Route()\n                    }"
+            val composableBlock = "                        entry<${pascalCase}Route> {\n                            ${pascalCase}Route()\n                        }"
 
             if (!activityText.contains("<${pascalCase}Route>")) {
-                val navHostIdx = activityText.indexOf("NavHost(")
+                val navHostIdx = activityText.indexOf("entryProvider {")
                 if (navHostIdx != -1) {
                     var depth = 0
                     var i = activityText.indexOf('{', navHostIdx)
@@ -277,7 +278,7 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
                     if (navHostCloseIdx != -1) {
                         val beforeClose = activityText.substring(0, navHostCloseIdx).trimEnd()
                         val afterClose = activityText.substring(navHostCloseIdx)
-                        activityText = "$beforeClose\n$composableBlock\n                $afterClose"
+                        activityText = "$beforeClose\n$composableBlock\n                    $afterClose"
                         mainActivityFile.writeText(activityText)
                         modifiedFiles.add(mainActivityFile.absolutePath)
                     }

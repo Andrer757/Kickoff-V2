@@ -11,6 +11,7 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 apply("kickoff.android.library")
                 apply("kickoff.android.compose")
                 apply("kickoff.android.hilt")
+                apply("org.jetbrains.kotlin.plugin.serialization")
             }
 
             val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -21,7 +22,9 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 add("implementation", project(":core:designsystem"))
                 add("implementation", project(":core:ui"))
 
-                add("implementation", libs.findLibrary("androidx-navigation-compose").get())
+                add("implementation", libs.findLibrary("androidx-navigation3-runtime").get())
+                add("implementation", libs.findLibrary("androidx-navigation3-ui").get())
+                add("implementation", libs.findLibrary("androidx-lifecycle-viewmodel-navigation3").get())
                 add("implementation", libs.findLibrary("hilt-navigation-compose").get())
                 add("implementation", libs.findLibrary("androidx-lifecycle-runtime-compose").get())
                 add("implementation", libs.findLibrary("androidx-lifecycle-viewmodel-compose").get())
