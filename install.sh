@@ -116,10 +116,10 @@ if command -v java >/dev/null 2>&1; then
     if [ "$JAVA_MAJOR" = "1" ]; then
         JAVA_MAJOR="$(echo "$JAVA_VER_STR" | cut -d'.' -f2)"
     fi
-    if [ -n "$JAVA_MAJOR" ] && [ "$JAVA_MAJOR" -ge 21 ] 2>/dev/null; then
-        success "Java ${JAVA_VER_STR} detected (meets requirement >= 21)"
+    if [ -n "$JAVA_MAJOR" ] && [ "$JAVA_MAJOR" -ge 21 ] && [ "$JAVA_MAJOR" -le 23 ] 2>/dev/null; then
+        success "Java ${JAVA_VER_STR} detected (meets requirement JDK 21..23)"
     else
-        warn "Detected Java version ${JAVA_VER_STR}. Kickoff requires JDK 21 (Temurin 21 recommended)."
+        warn "Detected Java version ${JAVA_VER_STR}. Kickoff requires JDK 21..23 (JDK 23 is the upper bound for Gradle 8.12 and Kotlin 2.0.21)."
     fi
 else
     warn "No Java runtime found in PATH. Kickoff CLI requires JDK 21."

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 public class FakeSdkClient(
-    override val config: SdkConfig = SdkConfig.Builder("test-api-key").build()
+    override val config: SdkConfig = SdkConfig.Builder("test-api-key").build(),
 ) : SdkClient {
 
     private val _status: MutableStateFlow<SdkStatus> = MutableStateFlow(SdkStatus.READY)
@@ -16,21 +16,19 @@ public class FakeSdkClient(
 
     public var shouldFailInitialize: Boolean = false
 
-    public fun setStatus(status: SdkStatus): Unit {
+    public fun setStatus(status: SdkStatus) {
         _status.value = status
     }
 
-    override suspend fun initialize(): Result<Unit> {
-        return if (shouldFailInitialize) {
-            _status.value = SdkStatus.ERROR
-            Result.failure(IllegalStateException("Simulated initialization failure"))
-        } else {
-            _status.value = SdkStatus.READY
-            Result.success(Unit)
-        }
+    override suspend fun initialize(): Result<Unit> = if (shouldFailInitialize) {
+        _status.value = SdkStatus.ERROR
+        Result.failure(IllegalStateException("Simulated initialization failure"))
+    } else {
+        _status.value = SdkStatus.READY
+        Result.success(Unit)
     }
 
-    override fun shutdown(): Unit {
+    override fun shutdown() {
         _status.value = SdkStatus.UNINITIALIZED
     }
 }

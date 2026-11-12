@@ -1,7 +1,7 @@
 package ${configs.packageName}.sdk.core
 
-import ${configs.packageName}.sdk.testing.FakeSdkClient
 import app.cash.turbine.test
+import ${configs.packageName}.sdk.testing.FakeSdkClient
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

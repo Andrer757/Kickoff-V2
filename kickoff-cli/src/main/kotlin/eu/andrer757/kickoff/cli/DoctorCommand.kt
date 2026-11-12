@@ -27,20 +27,24 @@ data class DoctorReport(
 
 object DoctorService {
 
-    fun diagnose(projectRoot: File?): DoctorReport {
+    fun diagnose(
+        projectRoot: File?,
+        javaVersionProvider: () -> String = { System.getProperty("java.version") ?: "unknown" }
+    ): DoctorReport {
         val items = mutableListOf<DiagnosticItem>()
 
         // 1. Java Runtime Check
-        val javaVersion = System.getProperty("java.version") ?: "unknown"
+        val javaVersion = javaVersionProvider()
         val javaVendor = System.getProperty("java.vendor") ?: "unknown"
-        val isJavaOk = (javaVersion.substringBefore(".").substringBefore("-").toIntOrNull() ?: 0) >= 21
+        val javaMajor = javaVersion.substringBefore(".").substringBefore("-").toIntOrNull() ?: 0
+        val isJavaOk = javaMajor in 21..23
         items.add(
             DiagnosticItem(
                 name = "Java JDK",
                 category = "Toolchain",
                 passed = isJavaOk,
                 details = "$javaVendor JDK $javaVersion",
-                recommendation = if (!isJavaOk) "Kickoff requires JDK 21+ (bytecode targets Java 21). Install Temurin-21 into ~/.jdks/temurin-21 or set JAVA_HOME." else null
+                recommendation = if (!isJavaOk) "Kickoff requires JDK 21..23 (JDK 23 is the upper bound for Gradle 8.12 and Kotlin 2.0.21). Install Temurin-21 into ~/.jdks/temurin-21 or set JAVA_HOME." else null
             )
         )
 

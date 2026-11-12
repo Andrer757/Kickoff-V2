@@ -131,8 +131,9 @@ Expect: Quality verdict (`ACCEPTABLE` / `INSUFFICIENT`).
 Lead issues the final verdict after required gates pass:
 
 1. For `STRUCTURAL` scopes, ensure the `APPROVED` entry is recorded in `.github/governance/android/acc-registry-android.yaml`
-2. Append the completed scope to `.github/backlog/Android/lead-backlog.md`
-3. Append to `.github/backlog/Android/decisions.md` only when a new architectural precedent (`AND-DEC-NNN`) is set
+2. Cite a saved, passing test log under `.kickoff/logs/` (gitignored) containing the exact command, pass/fail/skip counts, exit code `0`, and a timestamp/commit SHA newer than the last code edit; `APPROVED` is invalid without this log citation
+3. Append the completed scope to `.github/backlog/Android/lead-backlog.md`
+4. Append to `.github/backlog/Android/decisions.md` only when a new architectural precedent (`AND-DEC-NNN`) is set
 
 Verdict format:
 ```
@@ -142,6 +143,7 @@ Verdict format:
 **acc_id:** AND-ACC-YYYY-NNN | ACC-lite
 **Architecture verdict:** ACCEPTABLE (or Lite Lane LOCAL)
 **Test quality verdict:** ACCEPTABLE (by AndroidTestReviewer, <date>)
+**Test log:** .kickoff/logs/<file>.log (cmd: `<cmd>`, passed: N, failed: 0, skipped: M, exit: 0, sha: <sha>)
 **Final verdict:** APPROVED | REJECTED | BLOCKED
 
 ### Rationale

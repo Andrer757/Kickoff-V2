@@ -1,5 +1,6 @@
 ---
 name: LeadAndroidAgent
+tier: lead
 role: Lead Android Orchestrator
 description: >
   Lead Android orchestrator for planning, delegation, quality gates, and final acceptance in the modern Android multi-module Compose ecosystem. Use when: you need task breakdown and scope classification, ACC registration, architectural validation delegation, implementation delegation, test quality review delegation, or a final APPROVED/REJECTED/BLOCKED verdict on any Android scope.
@@ -174,6 +175,7 @@ If the project was generated with `--engram` and the Engram MCP server (`mem_sav
 Only this agent may:
 - Register `AND-ACC-YYYY-NNN` IDs
 - Update ACC status (`PENDING` → `APPROVED` / `REJECTED`)
+- Issue `APPROVED` verdict (per `android-lead-orchestration-skill` `## 5. Final Verdict Protocol`, must cite a saved passing test log in `.kickoff/logs/` with command, counts, exit code `0`, and commit SHA)
 - Issue `BLOCKED` verdict
 - Promote or rollback enforcement stages
 - Approve Gradle module topology changes

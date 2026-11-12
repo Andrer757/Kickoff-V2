@@ -1,5 +1,6 @@
 ---
 name: AndroidTestWriter
+tier: worker
 role: Android Unit & Integration Test Specialist
 description: >
   Specialist for writing Android tests before the ChaosValidated gate in the modern Android multi-module ecosystem. Use when: the primary deliverable is tests (unit + integration + Hilt) and the implementation code already exists or is being written in parallel. Reduces context of AndroidProgrammer by loading only testing-specific skills. Input: Describe the test scope: which UseCase/ViewModel/Repository to test, the ACC constraints, and any specific adversarial scenarios required.

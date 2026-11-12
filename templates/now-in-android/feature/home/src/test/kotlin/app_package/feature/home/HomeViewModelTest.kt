@@ -1,10 +1,10 @@
 package ${configs.packageName}.feature.home
 
+import app.cash.turbine.test
 import ${configs.packageName}.core.model.User
 import ${configs.packageName}.core.testing.FakeNetworkMonitor
 import ${configs.packageName}.core.testing.FakeUserRepository
 import ${configs.packageName}.core.testing.MainDispatcherRule
-import app.cash.turbine.test
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -26,7 +26,7 @@ class HomeViewModelTest {
     fun `uiState emits Success when repository emits data`() = runTest {
         val viewModel = HomeViewModel(
             userRepository = fakeUserRepository,
-            networkMonitor = fakeNetworkMonitor
+            networkMonitor = fakeNetworkMonitor,
         )
 
         fakeUserRepository.setUsers(listOf(User("1", "Alice", "alice@example.com")))
@@ -47,7 +47,7 @@ class HomeViewModelTest {
     fun `toggleDarkMode updates repository state`() = runTest {
         val viewModel = HomeViewModel(
             userRepository = fakeUserRepository,
-            networkMonitor = fakeNetworkMonitor
+            networkMonitor = fakeNetworkMonitor,
         )
 
         viewModel.toggleDarkMode(current = false)

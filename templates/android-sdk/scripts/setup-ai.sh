@@ -36,7 +36,7 @@ check_tool() {
 }
 
 check_tool "git" "Required for version control"
-check_tool "java" "Required for Android Gradle builds (Java 17/21 recommended)"
+check_tool "java" "Required for Android Gradle builds (JDK 21-23 recommended)"
 check_tool "code" "VS Code CLI (run 'Shell Command: Install code command in PATH' from VS Code)"
 
 # ------------------------------------------------------------------------------
@@ -56,23 +56,44 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# Step 3: Install Engram MCP (Local AI Memory)
+# Step 3: Optional Engram MCP (Local AI Memory)
 # ------------------------------------------------------------------------------
+WITH_ENGRAM="${KICKOFF_WITH_ENGRAM:-0}"
+for arg in "$@"; do
+  if [ "$arg" = "--with-engram" ]; then
+    WITH_ENGRAM=1
+  fi
+done
+
 echo ""
-echo -e "${YELLOW}[3/5] Checking Engram MCP (Local Context Memory)...${NC}"
+echo -e "${YELLOW}[3/5] Checking Engram MCP (Optional Local Context Memory)...${NC}"
 if command -v engram &> /dev/null; then
   echo -e "${GREEN}  ✓ Engram already installed${NC}"
-elif command -v brew &> /dev/null; then
-  echo "  Installing Engram via Homebrew..."
-  if brew tap gentleman-programming/tap && brew install gentleman-programming/tap/engram; then
-    echo -e "${GREEN}  ✓ Engram installed${NC}"
-  else
-    SETUP_FAILED=1
-    echo -e "${RED}  ✗ Engram install failed (see the Homebrew output above).${NC}"
-    echo -e "${RED}    Install it manually: brew install gentleman-programming/tap/engram${NC}"
-  fi
 else
-  echo -e "${YELLOW}  ⚠ Homebrew not found. Install engram manually if using MCP memory.${NC}"
+  SHOULD_INSTALL_ENGRAM=0
+  if [ "$WITH_ENGRAM" = "1" ]; then
+    SHOULD_INSTALL_ENGRAM=1
+  elif [ -t 0 ]; then
+    read -r -p "  Install optional Engram MCP via Homebrew? [y/N] " engram_reply
+    case "$engram_reply" in
+      [yY]|[yY][eE][sS]) SHOULD_INSTALL_ENGRAM=1 ;;
+    esac
+  fi
+
+  if [ "$SHOULD_INSTALL_ENGRAM" = "1" ]; then
+    if command -v brew &> /dev/null; then
+      echo "  Installing Engram via Homebrew..."
+      if brew tap gentleman-programming/tap && brew install gentleman-programming/tap/engram; then
+        echo -e "${GREEN}  ✓ Engram installed${NC}"
+      else
+        echo -e "${YELLOW}  ⚠ Engram install failed (optional; continuing without Engram).${NC}"
+      fi
+    else
+      echo -e "${YELLOW}  ⚠ Homebrew not found. Install engram manually if using MCP memory.${NC}"
+    fi
+  else
+    echo -e "${YELLOW}  ⚠ Skipping optional Engram install (pass --with-engram or set KICKOFF_WITH_ENGRAM=1 to enable).${NC}"
+  fi
 fi
 
 # ------------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 ---
 name: AndroidComposeSpecialist
+tier: worker
 role: Jetpack Compose Specialist
 description: >
   Specialist for Jetpack Compose UI scopes in the modern Android multi-module ecosystem. Use when: the scope touches Composable functions, ViewModifiers, state hoisting, recomposition optimization, stable annotations, side effects, or Compose performance audit. Reduces context of AndroidProgrammer by loading only UI-specific skills. Input: Describe the Compose UI change: which screen, Composable, or state management pattern to implement or optimize.

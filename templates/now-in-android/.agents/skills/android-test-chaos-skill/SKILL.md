@@ -123,7 +123,8 @@ For every UseCase or ViewModel submission, probe at least 3 of these:
 
 ### For LOCAL scope
 - Confirm ACC-lite was declared in implementation plan
-- Verify change is genuinely LOCAL (single module, no settings.gradle changes)
+- Verify change is genuinely LOCAL (single module, or standard `:feature:<name>` wiring via `kickoff add feature` touching only `settings.gradle.kts`, `app/build.gradle.kts`, `MainActivity.kt`, and the new `feature/<name>/build.gradle.kts`)
+- Run `./kickoff arch-check` and fail `INSUFFICIENT` if it fails or if any existing `:core:*`, `:sdk-*`, or root `build.gradle.kts` was modified
 - If undeclared LOCAL scope found: warn and request retroactive ACC-lite
 
 ---

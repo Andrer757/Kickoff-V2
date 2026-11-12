@@ -21,8 +21,8 @@ Define a single decision vocabulary for Android governance artifacts so verdict 
 - Missing ACC or unresolved ambiguity → Lead decision BLOCKED.
 
 ## ACC Scope Vocabulary
-- STRUCTURAL: Change affects ≥2 modules, adds cross-repo dependencies, modifies Hilt graph or Gradle topology, or toggles local-vs-remote dependency.
-- LOCAL: Change confined to a single Gradle module with no cross-module or settings.gradle impact.
+- STRUCTURAL: Change affects ≥2 modules (other than standard `:feature:<name>` wiring), adds cross-repo dependencies, modifies `:core:*`/`:sdk-*` contracts, Hilt graph, or database/lifecycle/backup/privacy behavior, or toggles local-vs-remote dependency.
+- LOCAL: Change confined to a single Gradle module, or standard `:feature:<name>` module scaffolding/wiring (`settings.gradle.kts`, `app/build.gradle.kts`, `MainActivity.kt`, and the new `feature/<name>/build.gradle.kts`) that consumes existing `:core:*` contracts without modifying `:core:*`, `:sdk-*`, or root `build.gradle.kts`.
 
 ## Usage Requirements
 - All files under `.github/backlog/Android/` must use canonical terms for new entries.

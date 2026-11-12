@@ -21,7 +21,7 @@ class OfflineFirstUserRepository @Inject constructor(
     private val userDao: UserDao,
     private val apiService: ApiService,
     private val userPreferencesDataSource: UserPreferencesDataSource,
-    @Dispatcher(AppDispatchers.IO) private val ioDispatcher: CoroutineDispatcher
+    @Dispatcher(AppDispatchers.IO) private val ioDispatcher: CoroutineDispatcher,
 ) : UserRepository {
 
     override val users: Flow<List<User>> = userDao.getUsers().map { entities ->
@@ -51,11 +51,11 @@ class OfflineFirstUserRepository @Inject constructor(
 private fun UserEntity.asExternalModel(): User = User(
     id = id,
     name = name,
-    email = email
+    email = email,
 )
 
 private fun User.asEntity(): UserEntity = UserEntity(
     id = id,
     name = name,
-    email = email
+    email = email,
 )

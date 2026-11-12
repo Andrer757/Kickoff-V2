@@ -28,17 +28,16 @@ VALID_SCOPES = {"STRUCTURAL", "LOCAL"}
 ACC_ID_PATTERN = re.compile(r"^AND-ACC-\d{4}-\d{3}$")
 
 
-def parse_yaml_entries(registry_path: Path) -> list[dict]:
-    """Simple YAML parsing for the ACC registry without external deps."""
+def parse_yaml_entries(registry_path: Path) -> list[dict] | None:
+    """Parse YAML entries for the ACC registry; return None if PyYAML is unavailable."""
     try:
         import yaml
         with open(registry_path) as f:
             data = yaml.safe_load(f) or {}
         return data.get("entries") or []
     except ImportError:
-        # Fallback: no pyyaml, skip structural parse, return empty (no entries = no findings)
-        print("  [WARN] pyyaml not available — skipping deep registry parse (install pyyaml for full validation)")
-        return []
+        print("  [WARN] pyyaml not available — cannot validate registry (install pyyaml for full validation)")
+        return None
 
 
 def validate_registry(entries: list[dict]) -> list[dict]:
@@ -96,6 +95,19 @@ def main():
         sys.exit(1 if args.strict else 0)
 
     entries = parse_yaml_entries(REGISTRY_PATH)
+    if entries is None:
+        result = {
+            "platform": "android",
+            "registry": str(REGISTRY_PATH.relative_to(WORKSPACE_ROOT)),
+            "entries_checked": 0,
+            "status": "not_run",
+            "findings": [{"severity": "warning", "message": "PyYAML is not installed; ACC registry validation did not run"}]
+        }
+        REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        REPORT_PATH.write_text(json.dumps(result, indent=2))
+        print(f"  Status: NOT RUN | Errors: 0 | Report: {REPORT_PATH.relative_to(WORKSPACE_ROOT)}")
+        sys.exit(1 if args.strict else 0)
+
     print(f"  Loaded {len(entries)} ACC entries")
 
     findings = validate_registry(entries)

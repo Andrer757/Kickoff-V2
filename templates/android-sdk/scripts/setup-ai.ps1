@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # Kickoff AI Development Kit Setup
 # setup-ai.ps1 — Windows PowerShell
 # =============================================================================
@@ -31,7 +31,7 @@ function Check-Tool ($command, $description) {
 }
 
 Check-Tool "git" "Required for version control"
-Check-Tool "java" "Required for Android Gradle builds (Java 17/21 recommended)"
+Check-Tool "java" "Required for Android Gradle builds (JDK 21-23 recommended)"
 Check-Tool "code" "VS Code CLI"
 
 # ------------------------------------------------------------------------------

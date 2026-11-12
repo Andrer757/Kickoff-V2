@@ -27,7 +27,7 @@ class ProjectGenerator {
     )
 
     private val validAiEnvironments = setOf(
-        "copilot", "claude", "cursor", "generic", "antigravity", "all", "none"
+        "copilot", "claude", "cursor", "codex", "generic", "antigravity", "all", "none"
     )
 
     fun validate(config: ProjectConfig): String? {
@@ -350,7 +350,45 @@ class ProjectGenerator {
         return if (ext == "api") {
             rawReplaced.replace("\${configs.packageName}", config.packageName.replace('.', '/'))
         } else {
-            rawReplaced.replace("\${configs.packageName}", config.packageName)
+            val substituted = rawReplaced.replace("\${configs.packageName}", config.packageName)
+            if (ext == "kt" || ext == "kts") sortKotlinImports(substituted) else substituted
         }
+    }
+
+    /**
+     * Sorts contiguous Kotlin `import` blocks to match Ktlint's default ordering
+     * (`*`, `java.**`, `javax.**`, `kotlin.**`, aliases) so arbitrary user package
+     * names remain compliant with Spotless/Ktlint.
+     */
+    private fun sortKotlinImports(content: String): String {
+        val importOrder = compareBy<String>(
+            { line ->
+                val target = line.removePrefix("import ").trim()
+                when {
+                    target.contains(" as ") -> 4
+                    target.startsWith("kotlin.") -> 3
+                    target.startsWith("javax.") -> 2
+                    target.startsWith("java.") -> 1
+                    else -> 0
+                }
+            },
+            { it }
+        )
+        val lines = content.split("\n")
+        val result = ArrayList<String>(lines.size)
+        var i = 0
+        while (i < lines.size) {
+            if (lines[i].startsWith("import ")) {
+                val start = i
+                while (i < lines.size && lines[i].startsWith("import ")) {
+                    i++
+                }
+                result.addAll(lines.subList(start, i).sortedWith(importOrder))
+            } else {
+                result.add(lines[i])
+                i++
+            }
+        }
+        return result.joinToString("\n")
     }
 }

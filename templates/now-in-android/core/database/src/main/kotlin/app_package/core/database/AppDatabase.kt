@@ -22,7 +22,7 @@ import javax.inject.Singleton
 data class UserEntity(
     @PrimaryKey val id: String,
     val name: String,
-    val email: String
+    val email: String,
 )
 
 @Dao
@@ -45,11 +45,11 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun providesAppDatabase(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
     ): AppDatabase = Room.databaseBuilder(
         context,
         AppDatabase::class.java,
-        "app-database"
+        "app-database",
     ).build()
 
     @Provides

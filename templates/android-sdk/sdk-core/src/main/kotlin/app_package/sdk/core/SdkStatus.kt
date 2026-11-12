@@ -4,5 +4,5 @@ public enum class SdkStatus {
     UNINITIALIZED,
     INITIALIZING,
     READY,
-    ERROR
+    ERROR,
 }

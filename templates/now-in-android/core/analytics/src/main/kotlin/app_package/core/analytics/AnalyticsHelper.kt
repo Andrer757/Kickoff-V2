@@ -10,7 +10,7 @@ import javax.inject.Singleton
 
 data class AnalyticsEvent(
     val type: String,
-    val properties: Map<String, Any?> = emptyMap()
+    val properties: Map<String, Any?> = emptyMap(),
 )
 
 interface AnalyticsHelper {
@@ -35,6 +35,6 @@ abstract class AnalyticsModule {
     @Binds
     @Singleton
     abstract fun bindsAnalyticsHelper(
-        analyticsHelper: LoggingAnalyticsHelper
+        analyticsHelper: LoggingAnalyticsHelper,
     ): AnalyticsHelper
 }

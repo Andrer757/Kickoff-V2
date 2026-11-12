@@ -10,9 +10,10 @@ plugins {
 
 apiValidation {
     ignoredProjects += listOf("sample", "sdk-testing")
-    nonPublicMarkers += listOf(
-        "${configs.packageName}.sdk.core.InternalSdkApi"
-    )
+    nonPublicMarkers +=
+        listOf(
+            "${configs.packageName}.sdk.core.InternalSdkApi",
+        )
 }
 
 allprojects {

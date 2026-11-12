@@ -11,11 +11,11 @@ interface PermissionHandler {
 
 @Composable
 fun rememberPermissionLauncher(
-    onResult: (permission: String, isGranted: Boolean) -> Unit
+    onResult: (permission: String, isGranted: Boolean) -> Unit,
 ): PermissionHandler {
     var requestedPermission = remember { "" }
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        contract = ActivityResultContracts.RequestPermission(),
     ) { isGranted ->
         onResult(requestedPermission, isGranted)
     }

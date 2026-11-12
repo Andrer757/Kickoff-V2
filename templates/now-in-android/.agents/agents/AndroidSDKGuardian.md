@@ -1,5 +1,6 @@
 ---
 name: AndroidSDKGuardian
+tier: judge
 role: Android Core SDK Guardian
 description: >
   Specialist in SDK contracts, binary compatibility, and redistributable Android libraries (:sdk-core, :sdk-ui, :sdk-testing). Ensures explicitApi(), zero-Hilt public surface, and BCV compliance.

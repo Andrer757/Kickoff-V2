@@ -7,7 +7,6 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Qualifier
-import javax.inject.Singleton
 
 @Qualifier
 @Retention(AnnotationRetention.RUNTIME)
@@ -16,7 +15,7 @@ annotation class Dispatcher(val dispatcher: AppDispatchers)
 enum class AppDispatchers {
     Default,
     IO,
-    Main
+    Main,
 }
 
 @Module

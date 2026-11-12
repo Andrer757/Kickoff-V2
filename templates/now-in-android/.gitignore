@@ -11,3 +11,4 @@ captures/
 *.aab
 *.hprof
 schemas/
+.kickoff/logs/

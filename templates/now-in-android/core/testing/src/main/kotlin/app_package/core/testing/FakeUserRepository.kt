@@ -23,7 +23,5 @@ class FakeUserRepository : UserRepository {
         _isDarkMode.value = enabled
     }
 
-    override suspend fun syncUsers(): AppResult<Unit> {
-        return AppResult.Success(Unit)
-    }
+    override suspend fun syncUsers(): AppResult<Unit> = AppResult.Success(Unit)
 }

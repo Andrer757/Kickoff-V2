@@ -1,5 +1,6 @@
 ---
 name: CodeReviewImpactSurfaceAgent
+tier: worker
 role: Impact Surface Reviewer
 description: >
   Change impact surface analysis specialist. Use when: a reviewer asks \"What could this affect?\", wants impacted modules, components, layers, dependencies, or historically sensitive areas identified from the current change without recommendations or prioritization. Input: Describe the changed files, modules, or diff to map the impact surface around.

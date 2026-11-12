@@ -7,23 +7,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ${configs.packageName}.sdk.core.SdkStatus
 
-@Immutable
-public data class SdkBannerState(
-    public val status: SdkStatus
-)
-
 @Composable
 public fun SdkStatusBanner(
     state: SdkBannerState,
-    modifier: Modifier = Modifier
-): Unit {
+    modifier: Modifier = Modifier,
+) {
     val backgroundColor = when (state.status) {
         SdkStatus.READY -> Color(0xFF4CAF50)
         SdkStatus.INITIALIZING -> Color(0xFFFF9800)
@@ -35,12 +29,12 @@ public fun SdkStatusBanner(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(backgroundColor)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Text(
             text = "SDK Status: ${state.status.name}",
             color = Color.White,
-            style = MaterialTheme.typography.labelMedium
+            style = MaterialTheme.typography.labelMedium,
         )
     }
 }

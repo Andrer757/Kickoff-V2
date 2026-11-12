@@ -14,7 +14,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -46,11 +45,11 @@ class SampleMainActivity : ComponentActivity() {
                             .padding(padding)
                             .padding(24.dp),
                         verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = "${configs.projectName} SDK Sample",
-                            style = MaterialTheme.typography.headlineMedium
+                            text = "Check SDK SDK Sample",
+                            style = MaterialTheme.typography.headlineMedium,
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))

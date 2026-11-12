@@ -3,7 +3,7 @@ package ${configs.packageName}.sdk.core
 public class SdkConfig private constructor(
     public val apiKey: String,
     public val environment: String,
-    public val debugLoggingEnabled: Boolean
+    public val debugLoggingEnabled: Boolean,
 ) {
     public class Builder(private val apiKey: String) {
         private var environment: String = "production"
@@ -20,7 +20,7 @@ public class SdkConfig private constructor(
         public fun build(): SdkConfig = SdkConfig(
             apiKey = apiKey,
             environment = environment,
-            debugLoggingEnabled = debugLoggingEnabled
+            debugLoggingEnabled = debugLoggingEnabled,
         )
     }
 }

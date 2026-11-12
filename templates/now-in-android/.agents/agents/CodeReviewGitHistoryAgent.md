@@ -1,5 +1,6 @@
 ---
 name: CodeReviewGitHistoryAgent
+tier: worker
 role: Git History Forensic Reviewer
 description: >
   Review-time Git history and diff forensics specialist. Use when: a reviewer asks \"Before it was not like this\", \"When did this change?\", \"What changed here and when?\", or needs neutral Git-based reconstruction of the current diff, recent related commits, change type, and repeated touch patterns in the same area. Input: Describe the diff, branch, files, or commit range to reconstruct from Git evidence only.

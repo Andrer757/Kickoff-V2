@@ -1,13 +1,12 @@
 package ${configs.packageName}.core.data
 
+import app.cash.turbine.test
 import ${configs.packageName}.core.common.AppResult
 import ${configs.packageName}.core.database.UserDao
 import ${configs.packageName}.core.database.UserEntity
 import ${configs.packageName}.core.datastore.UserPreferencesDataSource
 import ${configs.packageName}.core.model.User
 import ${configs.packageName}.core.network.ApiService
-import app.cash.turbine.test
-import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.io.IOException
 
 class OfflineFirstUserRepositoryTest {
 
@@ -43,7 +43,7 @@ class OfflineFirstUserRepositoryTest {
             userDao = fakeDao,
             apiService = fakeApi,
             userPreferencesDataSource = createDummyPreferencesSource(),
-            ioDispatcher = testDispatcher
+            ioDispatcher = testDispatcher,
         )
 
         fakeDao.insertUsers(listOf(UserEntity(id = "1", name = "Alice", email = "alice@example.com")))
@@ -61,7 +61,7 @@ class OfflineFirstUserRepositoryTest {
             userDao = fakeDao,
             apiService = fakeApi,
             userPreferencesDataSource = createDummyPreferencesSource(),
-            ioDispatcher = testDispatcher
+            ioDispatcher = testDispatcher,
         )
 
         val result = repository.syncUsers()
@@ -81,7 +81,7 @@ class OfflineFirstUserRepositoryTest {
             userDao = fakeDao,
             apiService = fakeApi,
             userPreferencesDataSource = createDummyPreferencesSource(),
-            ioDispatcher = testDispatcher
+            ioDispatcher = testDispatcher,
         )
 
         val result = repository.syncUsers()
@@ -91,7 +91,7 @@ class OfflineFirstUserRepositoryTest {
     private fun createDummyPreferencesSource(): UserPreferencesDataSource {
         // Return dummy instance or mock for unit test
         return UserPreferencesDataSource(
-            dataStore = FakePreferencesDataStore()
+            dataStore = FakePreferencesDataStore(),
         )
     }
 

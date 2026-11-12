@@ -11,3 +11,4 @@ captures/
 *.apk
 *.aab
 *.hprof
+.kickoff/logs/

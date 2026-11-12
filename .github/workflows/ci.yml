@@ -51,22 +51,14 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 35 Platform
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Publish Quality Verifier & Build CLI
-        run: |
-          ./gradlew :quality-verifier:publishToMavenLocal :kickoff-cli:installDist
-
-      - name: Scaffold & Verify Android App
-        run: |
-          ./kickoff new --name "CI App" --package "com.example.ciapp" --output "/tmp/ci-app" --json
-          ./kickoff add feature --name settings -d /tmp/ci-app --json
-          ./kickoff add entity --name Article -d /tmp/ci-app --json
-          ./kickoff arch-check -d /tmp/ci-app
-
-      - name: Scaffold & Verify Android SDK
-        run: |
-          ./kickoff new --name "CI SDK" --package "com.example.cisdk" --type sdk --output "/tmp/ci-sdk" --json
-          ./kickoff add module --name analytics -t sdk -d /tmp/ci-sdk --json
-          ./kickoff arch-check -d /tmp/ci-sdk
+      - name: Verify Scaffolds End-to-End
+        run: ./scripts/verify-scaffolds.sh

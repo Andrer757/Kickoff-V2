@@ -40,30 +40,30 @@ sealed interface HomeUiState {
     data class Success(
         val users: List<User>,
         val isOnline: Boolean,
-        val isDarkMode: Boolean
+        val isDarkMode: Boolean,
     ) : HomeUiState
 }
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    networkMonitor: NetworkMonitor
+    networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> = combine(
         userRepository.users,
         networkMonitor.isOnline,
-        userRepository.isDarkMode
+        userRepository.isDarkMode,
     ) { users, isOnline, isDarkMode ->
         HomeUiState.Success(
             users = users,
             isOnline = isOnline,
-            isDarkMode = isDarkMode
+            isDarkMode = isDarkMode,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = HomeUiState.Loading
+        initialValue = HomeUiState.Loading,
     )
 
     fun toggleDarkMode(current: Boolean) {
@@ -76,21 +76,21 @@ class HomeViewModel @Inject constructor(
 @Composable
 fun HomeRoute(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(
         uiState = uiState,
         onToggleDarkMode = viewModel::toggleDarkMode,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
+    modifier: Modifier = Modifier,
     onToggleDarkMode: (Boolean) -> Unit = {},
-    modifier: Modifier = Modifier
 ) {
     Scaffold(modifier = modifier) { padding ->
         Column(
@@ -99,7 +99,7 @@ fun HomeScreen(
                 .padding(padding)
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             when (uiState) {
                 is HomeUiState.Loading -> {
@@ -108,18 +108,18 @@ fun HomeScreen(
                 is HomeUiState.Success -> {
                     Text(
                         text = "Welcome to ${configs.projectName}",
-                        style = MaterialTheme.typography.headlineMedium
+                        style = MaterialTheme.typography.headlineMedium,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = if (uiState.isOnline) "Status: Online" else "Status: Offline",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = if (uiState.isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                        color = if (uiState.isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Users in database: ${uiState.users.size}",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { onToggleDarkMode(uiState.isDarkMode) }) {

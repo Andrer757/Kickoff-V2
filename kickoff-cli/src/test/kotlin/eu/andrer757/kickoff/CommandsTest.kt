@@ -242,4 +242,51 @@ class CommandsTest {
             parentDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun `doctor enforces JDK 21 to 23 range`() {
+        val jdk21 = eu.andrer757.kickoff.cli.DoctorService.diagnose(null) { "21.0.5" }.items.first { it.name == "Java JDK" }
+        val jdk24 = eu.andrer757.kickoff.cli.DoctorService.diagnose(null) { "24.0.1" }.items.first { it.name == "Java JDK" }
+        val jdk17 = eu.andrer757.kickoff.cli.DoctorService.diagnose(null) { "17.0.10" }.items.first { it.name == "Java JDK" }
+
+        assertTrue(jdk21.passed)
+        assertFalse(jdk24.passed)
+        assertFalse(jdk17.passed)
+    }
+
+    @Test
+    fun `add entity bumps Room version, is force-idempotent, validates types, and supports no-migration`() {
+        val tempDir = createTempDirectory("kickoff-entity-migration").toFile()
+        try {
+            ProjectGenerator().generate(
+                ProjectConfig("App", "com.test.migapp", tempDir.absolutePath, getTemplateDir().absolutePath, aiEnvironments = setOf("none"), gitInit = false)
+            )
+            val appDb = File(tempDir, "core/database/src/main/kotlin/com/test/migapp/core/database/AppDatabase.kt")
+
+            // Unsupported field type fails
+            assertFailsWith<Exception> {
+                eu.andrer757.kickoff.cli.AddEntityCommand().parse(listOf("-n", "Blob", "-f", "id:String,raw:ByteArray", "-d", tempDir.absolutePath))
+            }
+
+            // Default bumps version 1 -> 2 and adds MIGRATION_1_2
+            eu.andrer757.kickoff.cli.AddEntityCommand().parse(listOf("-n", "AuditNote", "-f", "id:String,count:Int,note:String?", "-d", tempDir.absolutePath))
+            val afterFirst = appDb.readText()
+            assertTrue(afterFirst.contains("version = 2"))
+            assertTrue(afterFirst.contains("val MIGRATION_1_2 = object : Migration(1, 2)"))
+            assertTrue(afterFirst.contains("`id` TEXT NOT NULL PRIMARY KEY, `count` INTEGER NOT NULL, `note` TEXT"))
+            assertTrue(afterFirst.contains(".addMigrations(MIGRATION_1_2)"))
+
+            // --force on existing entity stays at version = 2
+            eu.andrer757.kickoff.cli.AddEntityCommand().parse(listOf("-n", "AuditNote", "--force", "-d", tempDir.absolutePath))
+            assertTrue(appDb.readText().contains("version = 2"))
+
+            // --no-migration adds entity without bumping version 2 -> 3
+            eu.andrer757.kickoff.cli.AddEntityCommand().parse(listOf("-n", "DraftItem", "--no-migration", "-d", tempDir.absolutePath))
+            val afterNoMig = appDb.readText()
+            assertTrue(afterNoMig.contains("DraftItemEntity::class"))
+            assertTrue(afterNoMig.contains("version = 2"))
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
 }

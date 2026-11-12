@@ -12,14 +12,15 @@ import org.junit.jupiter.api.extension.ExtensionContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 public class SdkTestRule(
-    public val testDispatcher: TestDispatcher = UnconfinedTestDispatcher()
-) : BeforeEachCallback, AfterEachCallback {
+    public val testDispatcher: TestDispatcher = UnconfinedTestDispatcher(),
+) : BeforeEachCallback,
+    AfterEachCallback {
 
-    override fun beforeEach(context: ExtensionContext?): Unit {
+    override fun beforeEach(context: ExtensionContext?) {
         Dispatchers.setMain(testDispatcher)
     }
 
-    override fun afterEach(context: ExtensionContext?): Unit {
+    override fun afterEach(context: ExtensionContext?) {
         Dispatchers.resetMain()
     }
 }

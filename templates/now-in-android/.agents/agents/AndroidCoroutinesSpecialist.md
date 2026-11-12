@@ -1,5 +1,6 @@
 ---
 name: AndroidCoroutinesSpecialist
+tier: worker
 role: Kotlin Coroutines & Flow Specialist
 description: >
   Specialist for Kotlin Coroutines and Flow scopes in the modern Android multi-module ecosystem. Use when: the scope touches Coroutines, Flow, StateFlow, SharedFlow, suspend functions, channel-based communication, structured concurrency, dispatcher injection, or Turbine-based test assertions. Reduces context of AndroidProgrammer by loading only concurrency-specific skills. Input: Describe the coroutines/Flow change: which StateFlow/SharedFlow, dispatcher concern, or concurrency pattern to implement or fix.

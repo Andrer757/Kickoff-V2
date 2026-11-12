@@ -1,5 +1,6 @@
 ---
 name: CodeReviewDecisionMemoryAgent
+tier: worker
 role: Decision Memory Reviewer
 description: >
   Historical decision-memory specialist for code review context. Use when: a reviewer asks \"Why was this done this way last time?\", or wants prior rationale reconstructed from backlog notes, ACCs, local review artifacts, PR-related documents, or repository history when those artifacts exist. Input: Describe the change area and the prior decision context you want reconstructed.

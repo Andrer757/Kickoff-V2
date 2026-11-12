@@ -169,4 +169,37 @@ class AiKitSynthesizerTest {
             assertEquals("Line one.\\nLine \\\"two\\\".", descriptionOf(agent))
         }
     }
+
+    @Test
+    fun `synthesizes abstract tiers for claude and codex merge-safe AGENTS md`() {
+        val root = createTempDirectory("kickoff-codex-test").toFile()
+        try {
+            val canonical = File(root, "canonical/.agents").apply { mkdirs() }
+            File(canonical, "agents").mkdirs()
+            File(canonical, "skills/sample-skill").mkdirs()
+            File(canonical, "skills/sample-skill/SKILL.md").writeText("---\nname: sample-skill\n---\n")
+            File(canonical, "agents/LeadAgent.md").writeText("---\nname: LeadAgent\ntier: lead\ndescription: Lead\n---\n\nLead body.\n")
+
+            val target = File(root, "target").apply { mkdirs() }
+            val agentsMd = File(target, "AGENTS.md")
+            agentsMd.writeText("# User Notes\n\nKeep me.\n")
+
+            AiKitSynthesizer().synthesize(canonical, target, setOf("claude", "copilot", "codex"))
+
+            val claudeLead = File(target, ".claude/agents/LeadAgent.md").readText()
+            assertTrue(claudeLead.contains("model: opus"))
+            assertTrue(claudeLead.contains("effort: high"))
+
+            val copilotLead = File(target, ".github/agents/LeadAgent.agent.md").readText()
+            assertTrue(copilotLead.contains("> Role Tier: lead"))
+
+            val codexAgents = agentsMd.readText()
+            assertTrue(codexAgents.contains("# User Notes"))
+            assertTrue(codexAgents.contains("<!-- KICKOFF:BEGIN -->"))
+            assertTrue(codexAgents.contains("| `LeadAgent` | `lead` | Lead |"))
+            assertTrue(File(target, ".agents/skills/sample-skill/SKILL.md").exists())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
 }

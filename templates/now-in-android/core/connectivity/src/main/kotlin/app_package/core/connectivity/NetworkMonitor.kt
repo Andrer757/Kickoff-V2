@@ -25,7 +25,7 @@ interface NetworkMonitor {
 
 @Singleton
 class ConnectivityManagerNetworkMonitor @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
 ) : NetworkMonitor {
 
     override val isOnline: Flow<Boolean> = callbackFlow {
@@ -62,11 +62,9 @@ class ConnectivityManagerNetworkMonitor @Inject constructor(
         }
     }.conflate()
 
-    private fun ConnectivityManager.isCurrentlyConnected(): Boolean {
-        return activeNetwork
-            ?.let(::getNetworkCapabilities)
-            ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ?: false
-    }
+    private fun ConnectivityManager.isCurrentlyConnected(): Boolean = activeNetwork
+        ?.let(::getNetworkCapabilities)
+        ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ?: false
 }
 
 @Module
@@ -75,6 +73,6 @@ abstract class ConnectivityModule {
     @Binds
     @Singleton
     abstract fun bindsNetworkMonitor(
-        networkMonitor: ConnectivityManagerNetworkMonitor
+        networkMonitor: ConnectivityManagerNetworkMonitor,
     ): NetworkMonitor
 }

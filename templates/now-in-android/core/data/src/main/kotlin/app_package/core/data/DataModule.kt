@@ -13,6 +13,6 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindsUserRepository(
-        userRepository: OfflineFirstUserRepository
+        userRepository: OfflineFirstUserRepository,
     ): UserRepository
 }

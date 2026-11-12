@@ -132,18 +132,18 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
             @Composable
             fun ${pascalCase}Route(
                 modifier: Modifier = Modifier,
-                viewModel: ${pascalCase}ViewModel = hiltViewModel()
+                viewModel: ${pascalCase}ViewModel = hiltViewModel(),
             ) {
                 ${pascalCase}Screen(
-                    name = "$pascalCase",
-                    modifier = modifier
+                    name = viewModel.title,
+                    modifier = modifier,
                 )
             }
 
             @Composable
             fun ${pascalCase}Screen(
                 name: String,
-                modifier: Modifier = Modifier
+                modifier: Modifier = Modifier,
             ) {
                 Scaffold(modifier = modifier) { padding ->
                     Column(
@@ -152,11 +152,11 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
                             .padding(padding)
                             .padding(24.dp),
                         verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
                             text = "${'$'}name Screen",
-                            style = MaterialTheme.typography.headlineMedium
+                            style = MaterialTheme.typography.headlineMedium,
                         )
                     }
                 }
@@ -175,7 +175,9 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
             import javax.inject.Inject
 
             @HiltViewModel
-            class ${pascalCase}ViewModel @Inject constructor() : ViewModel()
+            class ${pascalCase}ViewModel @Inject constructor() : ViewModel() {
+                val title: String = "$pascalCase"
+            }
             """.trimIndent() + "\n"
         )
         createdFiles.add(vmFile.absolutePath)
@@ -234,10 +236,21 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
             var activityText = mainActivityFile.readText()
             val importLine = "import $packageName.feature.$pkgSegment.${pascalCase}Route"
             if (!activityText.contains(importLine)) {
-                activityText = activityText.replaceFirst(
-                    "package $packageName",
-                    "package $packageName\n\n$importLine"
-                )
+                val lines = activityText.split("\n").toMutableList()
+                val firstImportIdx = lines.indexOfFirst { it.startsWith("import ") }
+                if (firstImportIdx != -1) {
+                    var endImportIdx = firstImportIdx
+                    while (endImportIdx < lines.size && lines[endImportIdx].startsWith("import ")) {
+                        endImportIdx++
+                    }
+                    val sortedImports = (lines.subList(firstImportIdx, endImportIdx) + importLine).sorted()
+                    activityText = (lines.subList(0, firstImportIdx) + sortedImports + lines.subList(endImportIdx, lines.size)).joinToString("\n")
+                } else {
+                    activityText = activityText.replaceFirst(
+                        "package $packageName",
+                        "package $packageName\n\n$importLine"
+                    )
+                }
             }
 
             val composableBlock = "                    composable<${pascalCase}Route> {\n                        ${pascalCase}Route()\n                    }"
@@ -402,21 +415,39 @@ class AddModuleCommand : CliktCommand(name = "module") {
                 """
                 package $packageName.$pkgSub
 
-                public class $pascalCase {
-                    public fun name(): String = "$pascalCase"
-                }
+                public class $pascalCase(
+                    public val name: String = "$pascalCase",
+                )
                 """.trimIndent() + "\n"
             } else {
                 """
                 package $packageName.$pkgSub
 
-                class $pascalCase {
-                    fun name(): String = "$pascalCase"
-                }
+                class $pascalCase(
+                    val name: String = "$pascalCase",
+                )
                 """.trimIndent() + "\n"
             }
         )
         createdFiles.add(classFile.absolutePath)
+
+        if (isSdk) {
+            val apiDir = File(moduleDir, "api")
+            apiDir.mkdirs()
+            val apiPkgPath = "$packagePath/${pkgSub.replace('.', '/')}"
+            val apiFile = File(apiDir, "${moduleDir.name}.api")
+            apiFile.writeText(
+                """
+                public final class $apiPkgPath/$pascalCase {
+                	public fun <init> ()V
+                	public fun <init> (Ljava/lang/String;)V
+                	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+                	public final fun getName ()Ljava/lang/String;
+                }
+                """.trimIndent() + "\n\n"
+            )
+            createdFiles.add(apiFile.absolutePath)
+        }
 
         // 3. Starter unit test
         val testDir = File(moduleDir, "src/test/kotlin/$packagePath/${pkgSub.replace('.', File.separatorChar)}")
@@ -474,6 +505,7 @@ class AddEntityCommand : CliktCommand(name = "entity") {
     private val fields by option("-f", "--fields", help = "Fields as name:Type (e.g. id:String,title:String)").default("id:String,title:String")
     private val projectDir by option("-d", "--project-dir", help = "Project root directory").default("")
     private val force by option("--force", help = "Overwrite existing entity files if present").flag(default = false)
+    private val noMigration by option("--no-migration", help = "Skip incrementing Room @Database(version) and generating a Migration stub").flag(default = false)
     private val json by option("--json", help = "Output result as structured JSON").flag(default = false)
 
     private val jsonSerializer = Json { prettyPrint = true }
@@ -512,6 +544,26 @@ class AddEntityCommand : CliktCommand(name = "entity") {
             fName to fType
         }
 
+        val supportedSqlTypes = mapOf(
+            "String" to "TEXT",
+            "Int" to "INTEGER",
+            "Long" to "INTEGER",
+            "Boolean" to "INTEGER",
+            "Double" to "REAL",
+            "Float" to "REAL",
+        )
+        val unsupportedField = parsedFields.firstOrNull { (_, fType) ->
+            fType.removeSuffix("?") !in supportedSqlTypes
+        }
+        if (unsupportedField != null) {
+            val res = AddResult(
+                "error",
+                "Unsupported field type '${unsupportedField.second}' for '${unsupportedField.first}'. Supported types: ${supportedSqlTypes.keys.joinToString(", ")}."
+            )
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
+
         val modelDir = File(root, "core/model/src/main/kotlin/$packagePath/core/model")
         val dbDir = File(root, "core/database/src/main/kotlin/$packagePath/core/database")
         val dataDir = File(root, "core/data/src/main/kotlin/$packagePath/core/data")
@@ -541,7 +593,7 @@ class AddEntityCommand : CliktCommand(name = "entity") {
 
         // 1. Domain Model in :core:model
         if (modelDir.exists()) {
-            val fieldsKotlin = parsedFields.joinToString(",\n    ") { (fName, fType) -> "val $fName: $fType" }
+            val fieldsKotlin = parsedFields.joinToString(",\n    ", postfix = ",") { (fName, fType) -> "val $fName: $fType" }
             modelFile.writeText(
                 buildString {
                     appendLine("package $packageName.core.model")
@@ -561,10 +613,10 @@ class AddEntityCommand : CliktCommand(name = "entity") {
         if (dbDir.exists()) {
             val entityFields = parsedFields.mapIndexed { idx, (fName, fType) ->
                 if (idx == 0) "@PrimaryKey val $fName: $fType" else "val $fName: $fType"
-            }.joinToString(",\n    ")
+            }.joinToString(",\n    ", postfix = ",")
 
-            val toDomainMapping = parsedFields.joinToString(",\n    ") { (fName, _) -> "$fName = $fName" }
-            val toEntityMapping = parsedFields.joinToString(",\n    ") { (fName, _) -> "$fName = $fName" }
+            val toDomainMapping = parsedFields.joinToString(",\n    ", postfix = ",") { (fName, _) -> "$fName = $fName" }
+            val toEntityMapping = parsedFields.joinToString(",\n    ", postfix = ",") { (fName, _) -> "$fName = $fName" }
 
             entityFile.writeText(
                 buildString {
@@ -616,7 +668,8 @@ class AddEntityCommand : CliktCommand(name = "entity") {
             val appDbFile = File(dbDir, "AppDatabase.kt")
             if (appDbFile.exists()) {
                 var dbText = appDbFile.readText()
-                if (!dbText.contains("${entityName}Entity::class")) {
+                val isNewEntity = !dbText.contains("${entityName}Entity::class")
+                if (isNewEntity) {
                     dbText = Regex("""entities\s*=\s*\[([^\]]*)\]""").replace(dbText) { matchResult ->
                         val existingEntities = matchResult.groupValues[1]
                             .split(",")
@@ -631,6 +684,64 @@ class AddEntityCommand : CliktCommand(name = "entity") {
                         "abstract class AppDatabase : RoomDatabase() {",
                         "abstract class AppDatabase : RoomDatabase() {\n    abstract fun ${entityLower}Dao(): ${entityName}Dao"
                     )
+                }
+                if (!noMigration && isNewEntity) {
+                    val versionRegex = Regex("""(@Database\([^\)]*\bversion\s*=\s*)(\d+)""")
+                    val versionMatch = versionRegex.find(dbText)
+                    if (versionMatch == null) {
+                        val res = AddResult("error", "Could not parse @Database(version = ...) in AppDatabase.kt.")
+                        if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+                        throw ProgramResult(1)
+                    }
+                    val currentVersion = versionMatch.groupValues[2].toInt()
+                    val nextVersion = currentVersion + 1
+                    val migrationName = "MIGRATION_${currentVersion}_${nextVersion}"
+                    dbText = dbText.replaceRange(versionMatch.groups[2]!!.range, nextVersion.toString())
+
+                    if (!dbText.contains("import androidx.room.migration.Migration")) {
+                        dbText = dbText.replaceFirst(
+                            "import androidx.room.RoomDatabase",
+                            "import androidx.room.RoomDatabase\nimport androidx.room.migration.Migration"
+                        )
+                    }
+                    if (!dbText.contains("import androidx.sqlite.db.SupportSQLiteDatabase")) {
+                        dbText = dbText.replaceFirst(
+                            "import androidx.room.migration.Migration",
+                            "import androidx.room.migration.Migration\nimport androidx.sqlite.db.SupportSQLiteDatabase"
+                        )
+                    }
+
+                    val columnDefs = parsedFields.mapIndexed { idx, (fName, fType) ->
+                        val sqlType = supportedSqlTypes.getValue(fType.removeSuffix("?"))
+                        val nullability = if (fType.endsWith("?")) "" else " NOT NULL"
+                        val pkClause = if (idx == 0) " PRIMARY KEY" else ""
+                        "`$fName` $sqlType$nullability$pkClause"
+                    }.joinToString(", ")
+
+                    if (!dbText.contains("val $migrationName")) {
+                        val migrationBlock = """
+val $migrationName = object : Migration($currentVersion, $nextVersion) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `$tableName` ($columnDefs)")
+    }
+}
+
+@Module"""
+                        dbText = dbText.replaceFirst("@Module", migrationBlock.trimStart())
+                    }
+
+                    val existingMigrationsRegex = Regex("""\.addMigrations\(([^)]*)\)""")
+                    val existingMigMatch = existingMigrationsRegex.find(dbText)
+                    dbText = if (existingMigMatch != null) {
+                        val current = existingMigMatch.groupValues[1].trim()
+                        if (current.contains(migrationName)) {
+                            dbText
+                        } else {
+                            dbText.replaceRange(existingMigMatch.range, ".addMigrations($current, $migrationName)")
+                        }
+                    } else {
+                        dbText.replaceFirst(").build()", ").addMigrations($migrationName).build()")
+                    }
                 }
                 if (!dbText.contains("fun provides${entityName}Dao")) {
                     val lastBrace = dbText.lastIndexOf('}')
@@ -680,7 +791,7 @@ class AddEntityCommand : CliktCommand(name = "entity") {
 
                 @Singleton
                 class OfflineFirst${entityName}Repository @Inject constructor(
-                    private val dao: ${entityName}Dao
+                    private val dao: ${entityName}Dao,
                 ) : ${entityName}Repository {
 
                     override val ${entityLower}s: Flow<List<$entityName>> = dao.get${entityName}s().map { list ->
@@ -707,7 +818,7 @@ class AddEntityCommand : CliktCommand(name = "entity") {
     @Binds
     @Singleton
     abstract fun binds${entityName}Repository(
-        repository: OfflineFirst${entityName}Repository
+        repository: OfflineFirst${entityName}Repository,
     ): ${entityName}Repository
 }"""
                         dmText = dmText.substring(0, lastBrace).trimEnd() + bindBlock + "\n"
