@@ -1,8 +1,8 @@
 class Kickoff < Formula
   desc "Deterministic Android Scaffolding Engine & Day-2 Architecture Platform"
   homepage "https://github.com/Andrer757/Kickoff-V2"
-  url "https://github.com/Andrer757/Kickoff-V2/releases/download/v1.0.0/kickoff-cli-1.0.0.tar"
-  sha256 "c08f4f92e850597d91add1ba1fca2d5b79d48bbb6332a098b09730fdc627efad"
+  url "https://github.com/Andrer757/Kickoff-V2/releases/download/v1.1.0/kickoff-cli-1.1.0.tar"
+  sha256 "832947ab662c2ae788509e4c13a0b70b70ffe1518ad36ce6a9fe3f780696ae3d"
   license "MIT"
 
   depends_on "openjdk@21"
