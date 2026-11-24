@@ -5,7 +5,7 @@
 set -euo pipefail
 
 REPO="Andrer757/Kickoff-V2"
-FALLBACK_VERSION="1.0.0"
+FALLBACK_VERSION="1.1.0"
 
 # Colors (respect NO_COLOR and non-interactive stdout)
 if [ -n "${NO_COLOR:-}" ] || [ ! -t 1 ]; then

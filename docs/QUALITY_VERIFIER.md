@@ -22,7 +22,7 @@ In your root or module `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("eu.andrer757.quality-verifier") version "1.0.0"
+    id("eu.andrer757.quality-verifier") version "1.1.0"
 }
 ```
 

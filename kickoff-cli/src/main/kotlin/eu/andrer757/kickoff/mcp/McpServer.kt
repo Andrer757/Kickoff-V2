@@ -148,7 +148,7 @@ class McpServer {
                         "serverInfo" to JsonObject(
                             mapOf(
                                 "name" to JsonPrimitive("kickoff-mcp"),
-                                "version" to JsonPrimitive("1.0.0")
+                                "version" to JsonPrimitive("1.1.0")
                             )
                         )
                     )
