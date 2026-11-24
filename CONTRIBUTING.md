@@ -19,8 +19,8 @@ All contributors and maintainers are expected to follow our [**Code of Conduct**
 ### Prerequisites
 - **Git**
 - **JDK 21** (Eclipse Temurin 21 recommended; JDK 17 cannot build or run Kickoff)
-- **Gradle 8.12** (managed automatically by `./gradlew`)
-- **Android SDK** (API 35 SDK installed)
+- **Gradle 9.9.1** (managed automatically by `./gradlew`)
+- **Android SDK** (API 37 SDK installed)
 
 ### Initial Setup
 
@@ -35,9 +35,9 @@ All contributors and maintainers are expected to follow our [**Code of Conduct**
    ```properties
    org.gradle.java.home=/path/to/jdk-21
    ```
-4. Run initial compilation and tests:
+4. Run initial compilation, plugin validation, and tests:
    ```bash
-   ./gradlew test
+   ./gradlew check
    ```
 
 ---
@@ -46,7 +46,7 @@ All contributors and maintainers are expected to follow our [**Code of Conduct**
 
 Kickoff is a multi-project Gradle monorepo:
 
-- **`:kickoff-cli`**: Standalone CLI application built with Kotlin 2.0.21 and Clikt 5.
+- **`:kickoff-cli`**: Standalone CLI application built with Kotlin 2.4.21 and Clikt 5.
 - **`:quality-verifier`**: Standalone Gradle plugin (`eu.andrer757.quality-verifier`) that bundles Detekt (with Compose rules), Spotless/Ktlint, Android Lint, and Kover.
 - **`templates/now-in-android`**: Uncompressed, git-tracked template for multi-module Android applications and AI swarm.
 - **`templates/android-sdk`**: Uncompressed, git-tracked template for redistributable Android SDK libraries and showcase application.

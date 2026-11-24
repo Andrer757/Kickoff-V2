@@ -4,15 +4,21 @@
 # setup-ai.sh — macOS / Linux
 # =============================================================================
 
-set -e
+set -euo pipefail
 
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
+if [ -n "${NO_COLOR:-}" ] || [ ! -t 1 ]; then
+  GREEN=''
+  YELLOW=''
+  RED=''
+  NC=''
+else
+  GREEN='\033[0;32m'
+  YELLOW='\033[1;33m'
+  RED='\033[0;31m'
+  NC='\033[0m'
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SETUP_FAILED=0
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo ""
@@ -47,11 +53,25 @@ echo -e "${YELLOW}[2/5] Checking Android CLI...${NC}"
 if command -v android &> /dev/null; then
   echo -e "${GREEN}  ✓ Android CLI already installed${NC}"
 else
-  echo "  Installing Android CLI..."
-  if curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh 2>/dev/null | bash; then
-    echo -e "${GREEN}  ✓ Android CLI installed${NC}"
+  OS_NAME="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  ARCH_NAME="$(uname -m)"
+  ANDROID_CLI_PLATFORM=""
+  case "${OS_NAME}_${ARCH_NAME}" in
+    linux_x86_64|linux_amd64)   ANDROID_CLI_PLATFORM="linux_x86_64" ;;
+    linux_aarch64|linux_arm64)  ANDROID_CLI_PLATFORM="linux_arm64" ;;
+    darwin_arm64|darwin_aarch64) ANDROID_CLI_PLATFORM="darwin_arm64" ;;
+    darwin_x86_64)              ANDROID_CLI_PLATFORM="darwin_x86_64" ;;
+  esac
+
+  if [ -n "$ANDROID_CLI_PLATFORM" ]; then
+    echo "  Installing Android CLI (${ANDROID_CLI_PLATFORM})..."
+    if curl -fsSL "https://dl.google.com/android/cli/latest/${ANDROID_CLI_PLATFORM}/install.sh" 2>/dev/null | bash; then
+      echo -e "${GREEN}  ✓ Android CLI installed${NC}"
+    else
+      echo -e "${YELLOW}  ⚠ Could not auto-install Android CLI. You can install it manually from Google developer tools.${NC}"
+    fi
   else
-    echo -e "${YELLOW}  ⚠ Could not auto-install Android CLI. You can install it manually from Google developer tools.${NC}"
+    echo -e "${YELLOW}  ⚠ Unsupported OS/arch (${OS_NAME}/${ARCH_NAME}) for Android CLI auto-install; install manually if needed.${NC}"
   fi
 fi
 
@@ -123,17 +143,19 @@ GITHUB_AGENTS="$PROJECT_ROOT/.github/agents"
 CLAUDE_AGENTS="$PROJECT_ROOT/.claude/agents"
 SHARED_SKILLS="$PROJECT_ROOT/.agents/skills"
 
-[ -d "$GITHUB_AGENTS" ] && echo -e "${GREEN}  ✓ GitHub Copilot Agents ready (${GITHUB_AGENTS})${NC}"
-[ -d "$CLAUDE_AGENTS" ] && echo -e "${GREEN}  ✓ Claude Code Agents ready (${CLAUDE_AGENTS})${NC}"
-[ -d "$SHARED_SKILLS" ] && echo -e "${GREEN}  ✓ Cursor / Antigravity Skills ready (${SHARED_SKILLS})${NC}"
+if [ -d "$GITHUB_AGENTS" ]; then
+  echo -e "${GREEN}  ✓ GitHub Copilot Agents ready (${GITHUB_AGENTS})${NC}"
+fi
+if [ -d "$CLAUDE_AGENTS" ]; then
+  echo -e "${GREEN}  ✓ Claude Code Agents ready (${CLAUDE_AGENTS})${NC}"
+fi
+if [ -d "$SHARED_SKILLS" ]; then
+  echo -e "${GREEN}  ✓ Cursor / Antigravity Skills ready (${SHARED_SKILLS})${NC}"
+fi
 
 echo ""
 echo "=============================================="
-if [ "$SETUP_FAILED" -eq 0 ]; then
-  echo -e "${GREEN}  ✓ AI Development Kit ready!${NC}"
-else
-  echo -e "${RED}  ✗ AI Development Kit setup incomplete (see errors above)${NC}"
-fi
+echo -e "${GREEN}  ✓ AI Development Kit ready!${NC}"
 echo "=============================================="
 echo ""
 echo "How to use with your preferred AI tool:"
@@ -147,5 +169,3 @@ echo ""
 echo "  • Cursor / Antigravity / Windsurf:"
 echo "      Skills in .agents/skills/ and .claude/skills/ are auto-discovered."
 echo ""
-
-exit "$SETUP_FAILED"

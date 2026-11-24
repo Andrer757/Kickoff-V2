@@ -1,14 +1,15 @@
 package eu.andrer757.kickoff.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import eu.andrer757.kickoff.model.ProjectConfig
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
-import kotlin.system.exitProcess
 
 @Serializable
 data class DiagnosticItem(
@@ -44,14 +45,15 @@ object DoctorService {
                 category = "Toolchain",
                 passed = isJavaOk,
                 details = "$javaVendor JDK $javaVersion",
-                recommendation = if (!isJavaOk) "Kickoff requires JDK 21..23 (JDK 23 is the upper bound for Gradle 8.12 and Kotlin 2.0.21). Install Temurin-21 into ~/.jdks/temurin-21 or set JAVA_HOME." else null
+                recommendation = if (!isJavaOk) "Kickoff requires JDK 21..23 (Temurin-21 recommended for Gradle 9.9.1 and Kotlin 2.4.21). Install Temurin-21 into ~/.jdks/temurin-21 or set JAVA_HOME." else null
             )
         )
 
         // 2. Android SDK Check
         val androidHome = resolveAndroidSdkDir(projectRoot)?.absolutePath
         val hasAndroidSdk = !androidHome.isNullOrBlank() && File(androidHome).exists()
-        val hasApi35 = hasAndroidSdk && File(androidHome, "platforms/android-35").exists()
+        val requiredApi = ProjectConfig.TEMPLATE_COMPILE_SDK
+        val hasRequiredApi = hasAndroidSdk && hasAndroidPlatform(File(androidHome!!), requiredApi)
 
         items.add(
             DiagnosticItem(
@@ -65,16 +67,16 @@ object DoctorService {
 
         items.add(
             DiagnosticItem(
-                name = "Android API 35 Platform",
+                name = "Android API $requiredApi Platform",
                 category = "Toolchain",
-                passed = hasApi35,
-                details = if (hasApi35) "android-35 installed" else "android-35 platform package missing",
-                recommendation = if (!hasApi35) "Install via SDK manager: sdkmanager 'platforms;android-35'" else null
+                passed = hasRequiredApi,
+                details = if (hasRequiredApi) "android-$requiredApi platform installed" else "android-$requiredApi platform package missing",
+                recommendation = if (!hasRequiredApi) "Install via SDK manager: sdkmanager 'platforms;android-$requiredApi.0'" else null
             )
         )
 
         // 3. Git Check
-        val hasGit = isCommandAvailable("git")
+        val hasGit = ProjectUtils.isCommandAvailable("git")
         items.add(
             DiagnosticItem(
                 name = "Git Version Control",
@@ -110,7 +112,7 @@ object DoctorService {
         )
 
         for ((bin, label) in aiTools) {
-            val available = isCommandAvailable(bin)
+            val available = ProjectUtils.isCommandAvailable(bin)
             items.add(
                 DiagnosticItem(
                     name = label,
@@ -155,15 +157,13 @@ object DoctorService {
         return defaultCandidates.firstOrNull { it.exists() && it.isDirectory }
     }
 
-    private fun isCommandAvailable(cmd: String): Boolean {
-        return try {
-            val process = ProcessBuilder("which", cmd)
-                .redirectErrorStream(true)
-                .start()
-            process.waitFor() == 0
-        } catch (_: Exception) {
-            false
-        }
+    private fun hasAndroidPlatform(androidHome: File, apiLevel: Int): Boolean {
+        val platformsDir = File(androidHome, "platforms")
+        if (!platformsDir.isDirectory) return false
+        val prefix = "android-$apiLevel"
+        return platformsDir.listFiles()?.any { dir ->
+            dir.isDirectory && (dir.name == prefix || dir.name.startsWith("$prefix."))
+        } == true
     }
 }
 
@@ -205,7 +205,7 @@ class DoctorCommand : CliktCommand(name = "doctor") {
 
         if (strict && report.status != "success") {
             val coreFailed = report.items.filter { it.category == "Toolchain" }.any { !it.passed }
-            if (coreFailed) exitProcess(1)
+            if (coreFailed) throw ProgramResult(1)
         }
     }
 }

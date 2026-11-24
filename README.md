@@ -30,7 +30,7 @@ Kickoff unifies five mature Android engineering foundations into a single modern
 ```
 Kickoff-V2/
 ├── kickoff                              # Root wrapper script for the CLI generator
-├── kickoff-cli/                         # Standalone CLI & MCP server (Kotlin 2.0.21 + Clikt 5)
+├── kickoff-cli/                         # Standalone CLI & MCP server (Kotlin 2.4.21 + Clikt 5)
 ├── quality-verifier/                    # Standalone Gradle plugin (eu.andrer757.quality-verifier)
 ├── templates/
 │   ├── now-in-android/                  # Multi-module App template (Now-in-Android)
@@ -57,7 +57,7 @@ Kickoff-V2/
 
 ### Prerequisites
 - **JDK 21** (Eclipse Temurin 21 recommended; JDK 17 cannot build or run Kickoff)
-- **Android SDK** (API 35 SDK installed)
+- **Android SDK** (API 37 SDK installed)
 
 ### 1. Install Kickoff CLI
 
@@ -133,9 +133,10 @@ Options:
   --type=<app|sdk>       Project archetype: app (Now-in-Android), sdk (Android SDK + Sample) (Default: app)
   -t, --template=<text>  Path to custom template
   --min-sdk=<int>        Minimum SDK API level (Default: 26)
-  --target-sdk=<int>     Target SDK API level (Default: 35)
-  --ai=<text>            Target AI environment: copilot, claude, cursor, generic, all, none (Default: all)
+  --target-sdk=<int>     Target SDK API level (Default: 37)
+  --ai=<text>            Target AI environment: copilot, claude, cursor, codex, generic, antigravity, all, none (Default: all)
   --git / --no-git       Initialize git repository with initial commit (Default: true)
+  --engram               Opt in to Engram MCP memory configs (Default: false)
   --json                 Output result as structured machine-readable JSON
 ```
 

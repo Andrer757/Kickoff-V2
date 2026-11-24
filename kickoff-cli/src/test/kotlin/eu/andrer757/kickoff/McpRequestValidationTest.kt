@@ -59,4 +59,27 @@ class McpRequestValidationTest {
         assertEquals("2", responses[1]["id"]?.jsonPrimitive?.content)
         assertTrue(responses[1]["result"].toString().contains("kickoff_scaffold_project"))
     }
+
+    @Test
+    fun `scaffold tool rejects missing required args and non-string primitives`() {
+        val server = McpServer()
+        val missingName = """{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"kickoff_scaffold_project","arguments":{"packageName":"com.example.app"}}}"""
+        val res1 = parse(server.handleMessage(missingName))
+        assertEquals("true", res1["result"]?.jsonObject?.get("isError")?.jsonPrimitive?.content)
+
+        val nonStringName = """{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"kickoff_scaffold_project","arguments":{"name":123,"packageName":"com.example.app"}}}"""
+        val res2 = parse(server.handleMessage(nonStringName))
+        assertEquals("true", res2["result"]?.jsonObject?.get("isError")?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `tools list schema reflects targetSdk 37, codex, and entity migration flags`() {
+        val raw = McpServer().handleMessage("""{"jsonrpc":"2.0","id":9,"method":"tools/list","params":{}}""")
+        assertNotNull(raw)
+        assertTrue(raw.contains("default: 37"))
+        assertTrue(raw.contains("codex"))
+        assertTrue(raw.contains("noMigration"))
+        assertTrue(raw.contains("\"force\""))
+        assertTrue(raw.contains("API 37"))
+    }
 }

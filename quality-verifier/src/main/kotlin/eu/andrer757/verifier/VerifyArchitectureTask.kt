@@ -2,15 +2,26 @@ package eu.andrer757.verifier
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
-import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
+@DisableCachingByDefault(because = "Fast in-memory verification of module dependency boundaries with no task outputs.")
 abstract class VerifyArchitectureTask : DefaultTask() {
 
     @get:Input
     abstract val abortOnError: Property<Boolean>
+
+    @get:Input
+    abstract val modulePath: Property<String>
+
+    @get:Input
+    abstract val dependentProjectPaths: SetProperty<String>
+
+    @get:Input
+    abstract val externalDeps: SetProperty<String>
 
     init {
         description = "Verifies Clean Architecture module dependency rules."
@@ -19,24 +30,10 @@ abstract class VerifyArchitectureTask : DefaultTask() {
 
     @TaskAction
     fun verify() {
-        val currentPath = project.path
+        val currentPath = modulePath.get()
         val violations = mutableListOf<String>()
 
-        val dependentProjectPaths = mutableSetOf<String>()
-        val externalDeps = mutableSetOf<String>()
-        for (config in project.configurations) {
-            if (config.name in setOf("implementation", "api", "compileOnly", "runtimeOnly")) {
-                for (dep in config.dependencies) {
-                    if (dep is ProjectDependency) {
-                        dependentProjectPaths.add(dep.path)
-                    } else if (dep.group != null) {
-                        externalDeps.add("${dep.group}:${dep.name}")
-                    }
-                }
-            }
-        }
-
-        for (extDep in externalDeps) {
+        for (extDep in externalDeps.get()) {
             if (currentPath == ":core:model" && (extDep.startsWith("androidx.") || extDep.startsWith("com.google.android."))) {
                 violations.add("Module ':core:model' cannot depend on Android framework library '$extDep'.")
             }
@@ -45,9 +42,9 @@ abstract class VerifyArchitectureTask : DefaultTask() {
             }
         }
 
-        for (depPath in dependentProjectPaths) {
+        for (depPath in dependentProjectPaths.get()) {
             // App Clean Architecture Invariants
-            if (currentPath == ":core:model") {
+            if (currentPath == ":core:model" && depPath != currentPath) {
                 violations.add("Module ':core:model' cannot depend on internal module '$depPath'. It must be innermost.")
             }
             if (currentPath.startsWith(":feature:")) {

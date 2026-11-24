@@ -1,10 +1,17 @@
 package eu.andrer757.verifier
 
+import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.GradleException
+import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.testfixtures.ProjectBuilder
+import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+import java.io.File
+import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -30,12 +37,84 @@ class QualityVerifierPluginTest {
     }
 
     @Test
+    fun `afterEvaluate wires detekt spotless kover and abortOnError into per-project build dir`() {
+        val project = ProjectBuilder.builder().withName("sample-lib").build()
+        project.plugins.apply("eu.andrer757.quality-verifier")
+        val extension = project.extensions.getByType(QualityVerifierExtension::class.java)
+        extension.abortOnError.set(false)
+        extension.minCoveragePercent.set(50)
+
+        (project as ProjectInternal).evaluate()
+
+        assertTrue(project.plugins.hasPlugin("io.gitlab.arturbosch.detekt"))
+        assertTrue(project.plugins.hasPlugin("com.diffplug.spotless"))
+        assertTrue(project.plugins.hasPlugin("org.jetbrains.kotlinx.kover"))
+
+        val detektExt = project.extensions.findByType(DetektExtension::class.java)
+        assertNotNull(detektExt)
+        assertTrue(detektExt.ignoreFailures, "abortOnError=false should set detekt ignoreFailures=true")
+
+        val perProjectConfig = project.layout.buildDirectory.file("quality-verifier/detekt-config.yml").get().asFile
+        assertTrue(perProjectConfig.exists(), "Detekt config should be extracted into the module build directory")
+        assertFalse(
+            File(project.rootProject.projectDir, ".gradle/quality-verifier/detekt-config.yml").exists(),
+            "Should not write shared config into root .gradle directory"
+        )
+    }
+
+    @Test
+    fun `verifyArchitecture is compatible with Gradle configuration cache`() {
+        val testDir = createTempDirectory("qv-cc-test").toFile()
+        try {
+            File(testDir, "settings.gradle.kts").writeText(
+                """
+                rootProject.name = "cc-test"
+                include(":core:model")
+                """.trimIndent() + "\n"
+            )
+            File(testDir, "build.gradle.kts").writeText(
+                """
+                plugins {
+                    id("eu.andrer757.quality-verifier") apply false
+                }
+                """.trimIndent() + "\n"
+            )
+            val modelDir = File(testDir, "core/model").apply { mkdirs() }
+            File(modelDir, "build.gradle.kts").writeText(
+                """
+                plugins {
+                    id("eu.andrer757.quality-verifier")
+                }
+                qualityVerifier {
+                    enableDetekt.set(false)
+                    enableSpotless.set(false)
+                    enableLint.set(false)
+                    enableKover.set(false)
+                }
+                """.trimIndent() + "\n"
+            )
+
+            val firstRun = GradleRunner.create()
+                .withProjectDir(testDir)
+                .withPluginClasspath()
+                .withArguments(":core:model:verifyArchitecture", "--configuration-cache")
+                .build()
+            assertEquals(TaskOutcome.SUCCESS, firstRun.task(":core:model:verifyArchitecture")?.outcome)
+
+            val secondRun = GradleRunner.create()
+                .withProjectDir(testDir)
+                .withPluginClasspath()
+                .withArguments(":core:model:verifyArchitecture", "--configuration-cache")
+                .build()
+            assertTrue(secondRun.output.contains("Reusing configuration cache"))
+        } finally {
+            testDir.deleteRecursively()
+        }
+    }
+
+    @Test
     fun `verifyArchitecture fails when feature depends on feature`() {
         val root = ProjectBuilder.builder().withName("root").build()
-        val featureHome = ProjectBuilder.builder().withName("home").withParent(root).build()
-        val featureSettings = ProjectBuilder.builder().withName("settings").withParent(root).build()
-
-        // Name modules as :feature:home and :feature:settings
         val featureDir = ProjectBuilder.builder().withName("feature").withParent(root).build()
         val subFeatureA = ProjectBuilder.builder().withName("home").withParent(featureDir).build()
         val subFeatureB = ProjectBuilder.builder().withName("settings").withParent(featureDir).build()

@@ -7,13 +7,22 @@ set -euo pipefail
 REPO="Andrer757/Kickoff-V2"
 FALLBACK_VERSION="1.0.0"
 
-# Colors
-C_RESET="\033[0m"
-C_BOLD="\033[1m"
-C_GREEN="\033[32m"
-C_CYAN="\033[36m"
-C_YELLOW="\033[33m"
-C_RED="\033[31m"
+# Colors (respect NO_COLOR and non-interactive stdout)
+if [ -n "${NO_COLOR:-}" ] || [ ! -t 1 ]; then
+    C_RESET=""
+    C_BOLD=""
+    C_GREEN=""
+    C_CYAN=""
+    C_YELLOW=""
+    C_RED=""
+else
+    C_RESET="\033[0m"
+    C_BOLD="\033[1m"
+    C_GREEN="\033[32m"
+    C_CYAN="\033[36m"
+    C_YELLOW="\033[33m"
+    C_RED="\033[31m"
+fi
 
 info() {
     printf "${C_CYAN}${C_BOLD}==>${C_RESET} ${C_BOLD}%s${C_RESET}\n" "$1"
@@ -73,6 +82,7 @@ mkdir -p "$BIN_DIR"
 
 TAR_NAME="kickoff-cli-${VERSION}.tar"
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/${TAR_NAME}"
+CHECKSUMS_URL="https://github.com/${REPO}/releases/download/${TAG}/checksums.txt"
 
 TMP_DIR="$(mktemp -d -t kickoff-install.XXXXXX)"
 cleanup() {
@@ -80,14 +90,38 @@ cleanup() {
 }
 trap cleanup EXIT
 
+download_file() {
+    local url="$1"
+    local dest="$2"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fL --progress-bar -o "$dest" "$url"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q --show-progress -O "$dest" "$url"
+    else
+        error "Neither curl nor wget found in PATH."
+    fi
+}
+
 info "Downloading ${DOWNLOAD_URL}..."
-if command -v curl >/dev/null 2>&1; then
-    curl -fL --progress-bar -o "$TMP_DIR/$TAR_NAME" "$DOWNLOAD_URL" || error "Failed to download $DOWNLOAD_URL"
-elif command -v wget >/dev/null 2>&1; then
-    wget -q --show-progress -O "$TMP_DIR/$TAR_NAME" "$DOWNLOAD_URL" || error "Failed to download $DOWNLOAD_URL"
-else
-    error "Neither curl nor wget found in PATH."
+download_file "$DOWNLOAD_URL" "$TMP_DIR/$TAR_NAME" || error "Failed to download $DOWNLOAD_URL"
+
+info "Verifying SHA-256 checksum..."
+download_file "$CHECKSUMS_URL" "$TMP_DIR/checksums.txt" || error "Failed to download $CHECKSUMS_URL for integrity verification."
+EXPECTED_SHA="$(awk -v file="$TAR_NAME" '$2 == file || $2 == "*" file { print $1; exit }' "$TMP_DIR/checksums.txt")"
+if [ -z "$EXPECTED_SHA" ]; then
+    error "No checksum entry found for ${TAR_NAME} in checksums.txt."
 fi
+if command -v sha256sum >/dev/null 2>&1; then
+    ACTUAL_SHA="$(sha256sum "$TMP_DIR/$TAR_NAME" | awk '{print $1}')"
+elif command -v shasum >/dev/null 2>&1; then
+    ACTUAL_SHA="$(shasum -a 256 "$TMP_DIR/$TAR_NAME" | awk '{print $1}')"
+else
+    error "Neither sha256sum nor shasum found in PATH to verify download integrity."
+fi
+if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+    error "Checksum mismatch for ${TAR_NAME} (expected ${EXPECTED_SHA}, got ${ACTUAL_SHA})."
+fi
+success "SHA-256 checksum verified"
 
 info "Extracting Kickoff distribution..."
 tar -xf "$TMP_DIR/$TAR_NAME" -C "$TMP_DIR"
@@ -97,10 +131,32 @@ if [ ! -d "$EXTRACTED_DIR" ]; then
     error "Extracted directory $EXTRACTED_DIR not found in archive."
 fi
 
-# Atomic install to INSTALL_DIR
-rm -rf "${INSTALL_DIR:?}"/*
-cp -R "$EXTRACTED_DIR"/* "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/bin/kickoff-cli"
+# Atomic swap into INSTALL_DIR via sibling staging directory
+if [ "$INSTALL_DIR" = "/" ]; then
+    error "Refusing to install into root directory '/'."
+fi
+INSTALL_PARENT="$(dirname "$INSTALL_DIR")"
+mkdir -p "$INSTALL_PARENT"
+STAGING_DIR="$(mktemp -d "${INSTALL_PARENT}/.kickoff-staging.XXXXXX")"
+BACKUP_DIR=""
+cp -R "$EXTRACTED_DIR"/. "$STAGING_DIR/"
+chmod +x "$STAGING_DIR/bin/kickoff-cli"
+
+if [ -d "$INSTALL_DIR" ]; then
+    BACKUP_DIR="${INSTALL_PARENT}/.kickoff-backup.$$"
+    rm -rf "$BACKUP_DIR"
+    mv "$INSTALL_DIR" "$BACKUP_DIR"
+fi
+if ! mv "$STAGING_DIR" "$INSTALL_DIR"; then
+    if [ -n "$BACKUP_DIR" ] && [ -d "$BACKUP_DIR" ]; then
+        mv "$BACKUP_DIR" "$INSTALL_DIR" || true
+    fi
+    rm -rf "$STAGING_DIR"
+    error "Failed to move staged installation into $INSTALL_DIR."
+fi
+if [ -n "$BACKUP_DIR" ] && [ -d "$BACKUP_DIR" ]; then
+    rm -rf "$BACKUP_DIR"
+fi
 
 # Create symlinks in BIN_DIR
 ln -sf "$INSTALL_DIR/bin/kickoff-cli" "$BIN_DIR/kickoff"
@@ -119,7 +175,7 @@ if command -v java >/dev/null 2>&1; then
     if [ -n "$JAVA_MAJOR" ] && [ "$JAVA_MAJOR" -ge 21 ] && [ "$JAVA_MAJOR" -le 23 ] 2>/dev/null; then
         success "Java ${JAVA_VER_STR} detected (meets requirement JDK 21..23)"
     else
-        warn "Detected Java version ${JAVA_VER_STR}. Kickoff requires JDK 21..23 (JDK 23 is the upper bound for Gradle 8.12 and Kotlin 2.0.21)."
+        warn "Detected Java version ${JAVA_VER_STR}. Kickoff requires JDK 21..23 (Temurin-21 recommended for Gradle 9.9.1 and Kotlin 2.4.21)."
     fi
 else
     warn "No Java runtime found in PATH. Kickoff CLI requires JDK 21."

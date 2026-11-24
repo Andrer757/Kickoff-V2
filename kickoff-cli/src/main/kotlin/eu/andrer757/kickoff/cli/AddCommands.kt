@@ -56,6 +56,11 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
 
         val slug = name.lowercase().replace(Regex("[^a-z0-9_-]"), "-").trim('-')
         val pkgSegment = slug.replace("-", "").replace("_", "")
+        if (pkgSegment.isEmpty() || ProjectUtils.isReservedKeyword(pkgSegment)) {
+            val res = AddResult("error", "Invalid feature name '$name': derived package segment '$pkgSegment' is empty or a reserved Kotlin/Java keyword.")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
         val pascalCase = slug.split('-', '_').filter { it.isNotEmpty() }.joinToString("") { it.replaceFirstChar(Char::titlecase) }
 
         val featureDir = File(root, "feature/$slug")
@@ -244,8 +249,9 @@ class AddFeatureCommand : CliktCommand(name = "feature") {
                     while (endImportIdx < lines.size && lines[endImportIdx].startsWith("import ")) {
                         endImportIdx++
                     }
-                    val sortedImports = (lines.subList(firstImportIdx, endImportIdx) + importLine).sorted()
-                    activityText = (lines.subList(0, firstImportIdx) + sortedImports + lines.subList(endImportIdx, lines.size)).joinToString("\n")
+                    val updatedImports = (lines.subList(firstImportIdx, endImportIdx) + importLine)
+                    val joined = (lines.subList(0, firstImportIdx) + updatedImports + lines.subList(endImportIdx, lines.size)).joinToString("\n")
+                    activityText = ProjectUtils.sortKotlinImports(joined)
                 } else {
                     activityText = activityText.replaceFirst(
                         "package $packageName",
@@ -333,6 +339,11 @@ class AddModuleCommand : CliktCommand(name = "module") {
 
         val slug = name.lowercase().replace(Regex("[^a-z0-9_-]"), "-").trim('-')
         val pkgSegment = slug.replace("-", "").replace("_", "")
+        if (pkgSegment.isEmpty() || ProjectUtils.isReservedKeyword(pkgSegment)) {
+            val res = AddResult("error", "Invalid module name '$name': derived package segment '$pkgSegment' is empty or a reserved Kotlin/Java keyword.")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
         val pascalCase = slug.split('-', '_').filter { it.isNotEmpty() }.joinToString("") { it.replaceFirstChar(Char::titlecase) }
 
         val modulePath = if (isSdk) "sdk-$slug" else "core/$slug"
@@ -543,6 +554,29 @@ class AddEntityCommand : CliktCommand(name = "entity") {
             val fName = parts[0].trim()
             val fType = if (parts.size > 1) parts[1].trim() else "String"
             fName to fType
+        }
+
+        if (parsedFields.isEmpty()) {
+            val res = AddResult("error", "Entity '$entityName' must define at least one field (e.g. id:String,title:String).")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
+
+        val invalidField = parsedFields.firstOrNull { (fName, _) -> !ProjectUtils.isValidKotlinFieldName(fName) }
+        if (invalidField != null) {
+            val res = AddResult(
+                "error",
+                "Invalid field name '${invalidField.first}'. Field names must be valid non-keyword Kotlin identifiers (e.g. id, title, createdAt)."
+            )
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
+        }
+
+        val duplicateField = parsedFields.groupingBy { it.first }.eachCount().entries.firstOrNull { it.value > 1 }
+        if (duplicateField != null) {
+            val res = AddResult("error", "Duplicate field name '${duplicateField.key}' in --fields.")
+            if (json) echo(jsonSerializer.encodeToString(res)) else echo(" Error: ${res.message}", err = true)
+            throw ProgramResult(1)
         }
 
         val supportedSqlTypes = mapOf(

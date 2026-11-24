@@ -49,12 +49,12 @@ Register `kickoff` with command `path/to/kickoff` and argument `mcp`.
 
 | Tool Name | Parameters | Description |
 |---|---|---|
-| `kickoff_scaffold_project` | `name`, `packageName`, `outputDir`, `projectType`, `minSdk`, `targetSdk`, `ai`, `gitInit` | Scaffolds a new Now-in-Android App (`app`) or Android SDK (`sdk`) project. |
+| `kickoff_scaffold_project` | `name`, `packageName`, `outputDir`, `projectType`, `minSdk`, `targetSdk`, `ai`, `gitInit`, `engram` | Scaffolds a new Now-in-Android App (`app`) or Android SDK (`sdk`) project. |
 | `kickoff_add_feature` | `name`, `projectDir` | Scaffolds `:feature:<name>` with routes, ViewModel, screen, test, and wires NavHost and Gradle. |
 | `kickoff_add_module` | `name`, `type` (`core`, `library`, `compose`, `sdk`), `projectDir` | Scaffolds `:core:<name>` or `:sdk-<name>` with convention plugins, consumer rules, and tests. |
-| `kickoff_add_entity` | `name`, `fields`, `projectDir` | Scaffolds domain model, Room entity, DAO, and offline-first repository. |
+| `kickoff_add_entity` | `name`, `fields`, `projectDir`, `force`, `noMigration` | Scaffolds domain model, Room entity, DAO, and offline-first repository. |
 | `kickoff_arch_check` | `projectDir` | Runs fast static Clean Architecture verification on module boundaries. |
-| `kickoff_doctor` | `projectDir` | Runs environment diagnostics for JDK, Android SDK/API 35, and AI tools. |
+| `kickoff_doctor` | `projectDir` | Runs environment diagnostics for JDK, Android SDK/API 37, and AI tools. |
 
 ---
 

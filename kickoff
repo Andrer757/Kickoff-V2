@@ -9,14 +9,14 @@ java_major() {
     "$1" -version 2>&1 | awk -F'"' '/version/ { v = $2; sub(/^1\./, "", v); sub(/[^0-9].*/, "", v); print v; exit }'
 }
 
-# Succeeds when the given directory is a supported JDK (21 to 23 for Gradle 8.12 + Kotlin 2.0.21).
+# Succeeds when the given directory is a supported JDK (21 to 23 for Gradle 9.9.1 + Kotlin 2.4.21).
 is_jdk21() {
     [ -x "$1/bin/java" ] || return 1
     major="$(java_major "$1/bin/java")"
     [ -n "$major" ] && [ "$major" -ge 21 ] && [ "$major" -le 23 ]
 }
 
-# The CLI and Gradle 8.12 need JDK 21 (21-23). Use the java that the start script would pick
+# The CLI and Gradle 9.9.1 builds need JDK 21 (21-23). Use the java that the start script would pick
 # (JAVA_HOME, else java on PATH) when it is in range, otherwise look for one.
 if [ -n "$JAVA_HOME" ]; then
     CURRENT_JAVA="$JAVA_HOME/bin/java"

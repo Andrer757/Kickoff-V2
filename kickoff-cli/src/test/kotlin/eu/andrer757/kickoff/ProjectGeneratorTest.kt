@@ -202,8 +202,48 @@ class ProjectGeneratorTest {
             val res4 = generator.generate(ProjectConfig("App", "com.test.app", tempDir.absolutePath, templateDir.absolutePath, aiEnvironments = setOf("invalid_ai")))
             assertEquals("error", res4.status)
             assertTrue(res4.message!!.contains("Invalid AI environment"))
+
+            // targetSdk > compileSdk (37)
+            val res5 = generator.generate(ProjectConfig("App", "com.test.app", tempDir.absolutePath, templateDir.absolutePath, targetSdk = 38))
+            assertEquals("error", res5.status)
+            assertTrue(res5.message!!.contains("37"))
+
+            // none combined with other AI environments
+            val res6 = generator.generate(ProjectConfig("App", "com.test.app", tempDir.absolutePath, templateDir.absolutePath, aiEnvironments = setOf("claude", "none")))
+            assertEquals("error", res6.status)
+            assertTrue(res6.message!!.contains("cannot be combined"))
         } finally {
             tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `generator defaults targetSdk to 37 and embeds quality-verifier for custom template path`() {
+        val customTemplateParent = createTempDirectory("kickoff-custom-tpl").toFile()
+        val targetDir = createTempDirectory("kickoff-target-37").toFile()
+        try {
+            val copiedTemplate = File(customTemplateParent, "my-app-template")
+            getTemplateDir().copyRecursively(copiedTemplate, overwrite = true)
+
+            val config = ProjectConfig(
+                projectName = "Api37 App",
+                packageName = "com.test.api37",
+                outputDir = targetDir.absolutePath,
+                templateDir = copiedTemplate.absolutePath,
+                aiEnvironments = setOf("none"),
+                gitInit = false
+            )
+            assertEquals(37, config.targetSdk)
+
+            val result = ProjectGenerator().generate(config)
+            assertEquals("success", result.status)
+
+            val appConvention = File(targetDir, "build-logic/convention/src/main/kotlin/AndroidApplicationConventionPlugin.kt").readText()
+            assertTrue(appConvention.contains("targetSdk = 37"))
+            assertTrue(File(targetDir, "build-logic/quality-verifier/build.gradle.kts").exists())
+        } finally {
+            customTemplateParent.deleteRecursively()
+            targetDir.deleteRecursively()
         }
     }
 

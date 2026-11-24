@@ -10,8 +10,9 @@ class Kickoff < Formula
   def install
     rm_f Dir["bin/*.bat"]
     libexec.install Dir["*"]
-    bin.install_symlink libexec/"bin/kickoff-cli" => "kickoff"
-    bin.install_symlink libexec/"bin/kickoff-cli" => "kickoff-cli"
+    env = Language::Java.overridable_java_home_env("21")
+    (bin/"kickoff").write_env_script libexec/"bin/kickoff-cli", env
+    (bin/"kickoff-cli").write_env_script libexec/"bin/kickoff-cli", env
   end
 
   test do

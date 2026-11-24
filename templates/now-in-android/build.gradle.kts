@@ -6,9 +6,5 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.room) apply false
-    alias(libs.plugins.quality.verifier) apply false
-}
-
-allprojects {
-    apply(plugin = "eu.andrer757.quality-verifier")
+    alias(libs.plugins.quality.verifier)
 }

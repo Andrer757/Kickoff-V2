@@ -1,6 +1,7 @@
 package eu.andrer757.kickoff.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.options.default
@@ -8,16 +9,19 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.int
+import eu.andrer757.kickoff.generator.ProjectGenerator
+import eu.andrer757.kickoff.model.ProjectConfig
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import eu.andrer757.kickoff.generator.ProjectGenerator
-import eu.andrer757.kickoff.model.GenerationResult
-import eu.andrer757.kickoff.model.ProjectConfig
-import java.io.File
-import kotlin.system.exitProcess
 
 class KickoffCommand : CliktCommand(name = "kickoff") {
-    override fun run() = Unit
+    private val noColor by option("--no-color", help = "Disable ANSI color output (also honors NO_COLOR)").flag(default = false)
+
+    override fun run() {
+        // CLI emits plain semantic text with no ANSI sequences; flag kept for accessibility/NO_COLOR parity.
+        @Suppress("UNUSED_EXPRESSION")
+        noColor
+    }
 }
 
 class NewCommand : CliktCommand(name = "new") {
@@ -26,8 +30,8 @@ class NewCommand : CliktCommand(name = "new") {
     private val output by option("-o", "--output", help = "Target output directory").default("")
     private val template by option("-t", "--template", help = "Path to template directory").default("")
     private val type by option("--type", help = "Project archetype: app (Now-in-Android), sdk (Android SDK + Sample)").default("app")
-    private val minSdk by option("--min-sdk", help = "Minimum SDK API level").int().default(26)
-    private val targetSdk by option("--target-sdk", help = "Target SDK API level").int().default(35)
+    private val minSdk by option("--min-sdk", help = "Minimum SDK API level").int().default(ProjectConfig.DEFAULT_MIN_SDK)
+    private val targetSdk by option("--target-sdk", help = "Target SDK API level").int().default(ProjectConfig.DEFAULT_TARGET_SDK)
     private val ai by option("--ai", help = "Target AI environment: copilot, claude, cursor, codex, generic, antigravity, all, none (supports comma-separated)").default("all")
     private val git by option("--git", help = "Initialize git repository").flag("--no-git", default = true)
     private val engram by option("--engram", help = "Opt in to Engram MCP memory (generates MCP configs; agents default to file-based state)").flag(default = false)
@@ -60,7 +64,7 @@ class NewCommand : CliktCommand(name = "new") {
             projectName = name,
             packageName = packageName,
             outputDir = targetOutput,
-            templateDir = resolveTemplateDir(effectiveTemplate),
+            templateDir = ProjectUtils.resolveTemplateDir(effectiveTemplate),
             minSdk = minSdk,
             targetSdk = targetSdk,
             aiEnvironments = if (aiSet.isEmpty()) setOf("all") else aiSet,
@@ -90,44 +94,8 @@ class NewCommand : CliktCommand(name = "new") {
         }
 
         if (result.status != "success") {
-            exitProcess(1)
+            throw ProgramResult(1)
         }
-    }
-
-    private fun resolveTemplateDir(path: String): String {
-        val directFile = File(path)
-        if (directFile.exists()) return directFile.absolutePath
-
-        val currentWorking = File(System.getProperty("user.dir"), path)
-        if (currentWorking.exists()) return currentWorking.absolutePath
-
-        val envTemplate = System.getenv("KICKOFF_TEMPLATE_DIR")
-        if (!envTemplate.isNullOrBlank() && File(envTemplate).exists()) {
-            return File(envTemplate).absolutePath
-        }
-
-        val appHome = System.getProperty("app.home") ?: System.getenv("APP_HOME")
-        if (!appHome.isNullOrBlank()) {
-            val appHomeTemplate = File(appHome, path)
-            if (appHomeTemplate.exists()) return appHomeTemplate.absolutePath
-        }
-
-        try {
-            val codeSourceLocation = NewCommand::class.java.protectionDomain?.codeSource?.location
-            if (codeSourceLocation != null) {
-                val jarOrClassFile = File(codeSourceLocation.toURI())
-                val installDir = jarOrClassFile.parentFile?.parentFile
-                if (installDir != null) {
-                    val bundledTemplate = File(installDir, path)
-                    if (bundledTemplate.exists()) return bundledTemplate.absolutePath
-
-                    val repoTemplate = File(installDir, "../../$path").canonicalFile
-                    if (repoTemplate.exists()) return repoTemplate.absolutePath
-                }
-            }
-        } catch (_: Exception) {}
-
-        return path
     }
 }
 

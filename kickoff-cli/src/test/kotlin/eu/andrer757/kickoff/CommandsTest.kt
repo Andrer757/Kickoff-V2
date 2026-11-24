@@ -289,4 +289,89 @@ class CommandsTest {
             tempDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun `add entity rejects invalid, keyword, duplicate, and empty field names`() {
+        val tempDir = createTempDirectory("kickoff-entity-fields").toFile()
+        try {
+            ProjectGenerator().generate(
+                ProjectConfig("App", "com.test.fieldapp", tempDir.absolutePath, getTemplateDir().absolutePath, aiEnvironments = setOf("none"), gitInit = false)
+            )
+            listOf(
+                "id:String,class:String",
+                "id:String,bad name:String",
+                "id:String,foo`bar:String",
+                "id:String,id:Int",
+                "   "
+            ).forEach { badFields ->
+                assertFailsWith<Exception>("Expected failure for fields='$badFields'") {
+                    eu.andrer757.kickoff.cli.AddEntityCommand().parse(listOf("-n", "Sample", "-f", badFields, "-d", tempDir.absolutePath))
+                }
+            }
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `add feature and module reject names collapsing to reserved keywords and preserve ktlint import order`() {
+        val tempDir = createTempDirectory("kickoff-keyword-seg").toFile()
+        try {
+            ProjectGenerator().generate(
+                ProjectConfig("App", "com.test.segapp", tempDir.absolutePath, getTemplateDir().absolutePath, aiEnvironments = setOf("none"), gitInit = false)
+            )
+
+            assertFailsWith<Exception> {
+                eu.andrer757.kickoff.cli.AddFeatureCommand().parse(listOf("-n", "c-lass", "-d", tempDir.absolutePath))
+            }
+            assertFailsWith<Exception> {
+                eu.andrer757.kickoff.cli.AddModuleCommand().parse(listOf("-n", "o-bject", "-d", tempDir.absolutePath))
+            }
+
+            // Inject a java.* import into MainActivity and confirm add feature keeps ktlint order
+            val mainActivity = File(tempDir, "app/src/main/kotlin/com/test/segapp/MainActivity.kt")
+            mainActivity.writeText(
+                mainActivity.readText().replace(
+                    "import dagger.hilt.android.AndroidEntryPoint",
+                    "import dagger.hilt.android.AndroidEntryPoint\nimport java.util.UUID"
+                )
+            )
+            eu.andrer757.kickoff.cli.AddFeatureCommand().parse(listOf("-n", "zeta", "-d", tempDir.absolutePath))
+            val updated = mainActivity.readText()
+            assertTrue(
+                updated.indexOf("import com.test.segapp.feature.zeta.ZetaRoute") < updated.indexOf("import java.util.UUID"),
+                "User package imports must appear before java.* imports for Ktlint compliance"
+            )
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `arch check ignores commented dependencies and catches com google android in core model`() {
+        val tempDir = createTempDirectory("kickoff-arch-comments").toFile()
+        try {
+            ProjectGenerator().generate(
+                ProjectConfig("App", "com.test.archcmt", tempDir.absolutePath, getTemplateDir().absolutePath, aiEnvironments = setOf("none"), gitInit = false)
+            )
+
+            val homeBuild = File(tempDir, "feature/home/build.gradle.kts")
+            homeBuild.appendText("\n// implementation(project(\":feature:other\"))\n/* implementation(project(\":core:database\")) */\n")
+            assertEquals("success", ArchChecker.check(tempDir).status)
+
+            val modelBuild = File(tempDir, "core/model/build.gradle.kts")
+            modelBuild.appendText("\ndependencies { implementation(\"com.google.android.material:material:1.12.0\") }\n")
+            val result = ArchChecker.check(tempDir)
+            assertEquals("failure", result.status)
+            assertTrue(result.violations.any { it.module == ":core:model" })
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `doctor checks Android API 37 platform`() {
+        val report = DoctorService.diagnose(null) { "21.0.5" }
+        assertTrue(report.items.any { it.name == "Android API 37 Platform" })
+    }
 }

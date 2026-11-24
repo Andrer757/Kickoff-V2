@@ -32,8 +32,8 @@ jobs:
       - name: Build Kickoff CLI Distribution
         run: ./gradlew :kickoff-cli:installDist
 
-      - name: Run Monorepo Tests
-        run: ./gradlew test
+      - name: Run Monorepo Checks & Tests
+        run: ./gradlew check
 
       - name: Verify Kickoff Doctor
         run: ./kickoff doctor --json

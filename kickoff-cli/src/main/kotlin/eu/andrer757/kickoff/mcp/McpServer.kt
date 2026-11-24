@@ -52,9 +52,9 @@ class McpServer {
                     "packageName" to mapOf("type" to "string", "description" to "Application package name (e.g. 'com.example.fitness')"),
                     "outputDir" to mapOf("type" to "string", "description" to "Target output directory (defaults to sanitized project name)"),
                     "projectType" to mapOf("type" to "string", "enum" to listOf("app", "sdk"), "description" to "Project archetype: 'app' or 'sdk' (default: app)"),
-                    "minSdk" to mapOf("type" to "integer", "description" to "Minimum SDK version (default: 26)"),
-                    "targetSdk" to mapOf("type" to "integer", "description" to "Target SDK version (default: 35)"),
-                    "ai" to mapOf("type" to "string", "description" to "Target AI: copilot, claude, cursor, generic, all, none (default: all)"),
+                    "minSdk" to mapOf("type" to "integer", "description" to "Minimum SDK version (default: ${ProjectConfig.DEFAULT_MIN_SDK})"),
+                    "targetSdk" to mapOf("type" to "integer", "description" to "Target SDK version (default: ${ProjectConfig.DEFAULT_TARGET_SDK})"),
+                    "ai" to mapOf("type" to "string", "description" to "Target AI: copilot, claude, cursor, codex, generic, antigravity, all, none (default: all)"),
                     "gitInit" to mapOf("type" to "boolean", "description" to "Whether to initialize a git repo (default: true)"),
                     "engram" to mapOf("type" to "boolean", "description" to "Opt in to Engram MCP memory: generates MCP client configs for the selected AI tools (default: false)")
                 ),
@@ -91,7 +91,9 @@ class McpServer {
                 properties = mapOf(
                     "name" to mapOf("type" to "string", "description" to "Entity name (e.g. 'Product', 'Article')"),
                     "fields" to mapOf("type" to "string", "description" to "Comma-separated name:Type list (default: 'id:String,title:String')"),
-                    "projectDir" to mapOf("type" to "string", "description" to "Kickoff project root directory")
+                    "projectDir" to mapOf("type" to "string", "description" to "Kickoff project root directory"),
+                    "force" to mapOf("type" to "boolean", "description" to "Overwrite existing entity files if present (default: false)"),
+                    "noMigration" to mapOf("type" to "boolean", "description" to "Skip incrementing Room @Database(version) and generating a Migration stub (default: false)")
                 ),
                 required = listOf("name")
             )
@@ -108,7 +110,7 @@ class McpServer {
         ),
         ToolDefinition(
             name = "kickoff_doctor",
-            description = "Diagnoses developer environment, JDK, Android SDK/API 35, Gradle wrapper, and AI tools.",
+            description = "Diagnoses developer environment, JDK, Android SDK/API ${ProjectConfig.TEMPLATE_COMPILE_SDK}, Gradle wrapper, and AI tools.",
             inputSchema = buildSchema(
                 properties = mapOf(
                     "projectDir" to mapOf("type" to "string", "description" to "Kickoff project root directory")
@@ -189,23 +191,54 @@ class McpServer {
         }
     }
 
+    private fun stringArg(args: JsonObject, key: String): String? {
+        val el = args[key] ?: return null
+        val prim = el as? JsonPrimitive
+            ?: throw IllegalArgumentException("Argument '$key' must be a string.")
+        if (!prim.isString) throw IllegalArgumentException("Argument '$key' must be a string.")
+        return prim.content
+    }
+
+    private fun requiredStringArg(args: JsonObject, key: String): String {
+        val value = stringArg(args, key)
+        if (value.isNullOrBlank()) throw IllegalArgumentException("Missing required string argument '$key'.")
+        return value
+    }
+
+    private fun intArg(args: JsonObject, key: String, default: Int): Int {
+        val el = args[key] ?: return default
+        val prim = el as? JsonPrimitive
+            ?: throw IllegalArgumentException("Argument '$key' must be an integer.")
+        if (prim.isString) throw IllegalArgumentException("Argument '$key' must be an integer.")
+        return prim.intOrNull ?: throw IllegalArgumentException("Argument '$key' must be an integer.")
+    }
+
+    private fun booleanArg(args: JsonObject, key: String, default: Boolean): Boolean {
+        val el = args[key] ?: return default
+        val prim = el as? JsonPrimitive
+            ?: throw IllegalArgumentException("Argument '$key' must be a boolean.")
+        if (prim.isString) throw IllegalArgumentException("Argument '$key' must be a boolean.")
+        return prim.booleanOrNull ?: throw IllegalArgumentException("Argument '$key' must be a boolean.")
+    }
+
     private fun executeTool(name: String, args: JsonObject): ToolCallResult {
         return try {
             when (name) {
                 "kickoff_scaffold_project" -> {
-                    val projName = args["name"]?.jsonPrimitive?.content ?: "App"
-                    val pkgName = args["packageName"]?.jsonPrimitive?.content ?: "com.example.app"
-                    val outDir = args["outputDir"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+                    val projName = requiredStringArg(args, "name")
+                    val pkgName = requiredStringArg(args, "packageName")
+                    val outDir = stringArg(args, "outputDir")?.takeIf { it.isNotBlank() }
                         ?: projName.lowercase().replace(Regex("[^a-z0-9_-]"), "-")
-                    val projType = args["projectType"]?.jsonPrimitive?.content ?: "app"
-                    val minSdk = args["minSdk"]?.jsonPrimitive?.intOrNull ?: 26
-                    val targetSdk = args["targetSdk"]?.jsonPrimitive?.intOrNull ?: 35
-                    val ai = args["ai"]?.jsonPrimitive?.content ?: "all"
-                    val gitInit = args["gitInit"]?.jsonPrimitive?.booleanOrNull ?: true
-                    val engram = args["engram"]?.jsonPrimitive?.booleanOrNull ?: false
+                    val projType = (stringArg(args, "projectType") ?: "app").trim().lowercase()
+                    val minSdk = intArg(args, "minSdk", ProjectConfig.DEFAULT_MIN_SDK)
+                    val targetSdk = intArg(args, "targetSdk", ProjectConfig.DEFAULT_TARGET_SDK)
+                    val aiRaw = stringArg(args, "ai") ?: "all"
+                    val aiSet = aiRaw.lowercase().split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+                    val gitInit = booleanArg(args, "gitInit", true)
+                    val engram = booleanArg(args, "engram", false)
 
                     val templatePath = if (projType == "sdk") "templates/android-sdk" else "templates/now-in-android"
-                    val templateDir = resolveTemplateDir(templatePath)
+                    val templateDir = ProjectUtils.resolveTemplateDir(templatePath)
 
                     val config = ProjectConfig(
                         projectName = projName,
@@ -214,7 +247,7 @@ class McpServer {
                         templateDir = templateDir,
                         minSdk = minSdk,
                         targetSdk = targetSdk,
-                        aiEnvironments = ai.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet(),
+                        aiEnvironments = if (aiSet.isEmpty()) setOf("all") else aiSet,
                         projectType = projType,
                         gitInit = gitInit,
                         engram = engram
@@ -223,8 +256,8 @@ class McpServer {
                     ToolCallResult(listOf(ToolContent(text = json.encodeToString(result))), isError = result.status != "success")
                 }
                 "kickoff_add_feature" -> {
-                    val featName = args["name"]?.jsonPrimitive?.content ?: ""
-                    val pDir = args["projectDir"]?.jsonPrimitive?.content ?: ""
+                    val featName = requiredStringArg(args, "name")
+                    val pDir = stringArg(args, "projectDir") ?: ""
                     val root = if (pDir.isNotBlank()) File(pDir) else ProjectUtils.findProjectRoot()
                         ?: return ToolCallResult(listOf(ToolContent(text = "Project root not found")), isError = true)
 
@@ -232,9 +265,9 @@ class McpServer {
                     runCommand(AddFeatureCommand(), cmdArgs)
                 }
                 "kickoff_add_module" -> {
-                    val modName = args["name"]?.jsonPrimitive?.content ?: ""
-                    val modType = args["type"]?.jsonPrimitive?.content ?: "core"
-                    val pDir = args["projectDir"]?.jsonPrimitive?.content ?: ""
+                    val modName = requiredStringArg(args, "name")
+                    val modType = (stringArg(args, "type") ?: "core").trim().lowercase()
+                    val pDir = stringArg(args, "projectDir") ?: ""
                     val root = if (pDir.isNotBlank()) File(pDir) else ProjectUtils.findProjectRoot()
                         ?: return ToolCallResult(listOf(ToolContent(text = "Project root not found")), isError = true)
 
@@ -242,24 +275,28 @@ class McpServer {
                     runCommand(AddModuleCommand(), cmdArgs)
                 }
                 "kickoff_add_entity" -> {
-                    val entName = args["name"]?.jsonPrimitive?.content ?: ""
-                    val entFields = args["fields"]?.jsonPrimitive?.content ?: "id:String,title:String"
-                    val pDir = args["projectDir"]?.jsonPrimitive?.content ?: ""
+                    val entName = requiredStringArg(args, "name")
+                    val entFields = stringArg(args, "fields") ?: "id:String,title:String"
+                    val pDir = stringArg(args, "projectDir") ?: ""
+                    val force = booleanArg(args, "force", false)
+                    val noMigration = booleanArg(args, "noMigration", false)
                     val root = if (pDir.isNotBlank()) File(pDir) else ProjectUtils.findProjectRoot()
                         ?: return ToolCallResult(listOf(ToolContent(text = "Project root not found")), isError = true)
 
                     val cmdArgs = mutableListOf("-n", entName, "-f", entFields, "-d", root.absolutePath, "--json")
+                    if (force) cmdArgs.add("--force")
+                    if (noMigration) cmdArgs.add("--no-migration")
                     runCommand(AddEntityCommand(), cmdArgs)
                 }
                 "kickoff_arch_check" -> {
-                    val pDir = args["projectDir"]?.jsonPrimitive?.content ?: ""
+                    val pDir = stringArg(args, "projectDir") ?: ""
                     val root = if (pDir.isNotBlank()) File(pDir) else ProjectUtils.findProjectRoot()
                         ?: return ToolCallResult(listOf(ToolContent(text = "Project root not found")), isError = true)
                     val result = ArchChecker.check(root)
                     ToolCallResult(listOf(ToolContent(text = json.encodeToString(result))), isError = result.status != "success")
                 }
                 "kickoff_doctor" -> {
-                    val pDir = args["projectDir"]?.jsonPrimitive?.content ?: ""
+                    val pDir = stringArg(args, "projectDir") ?: ""
                     val root = if (pDir.isNotBlank()) File(pDir) else ProjectUtils.findProjectRoot()
                     val result = DoctorService.diagnose(root)
                     ToolCallResult(listOf(ToolContent(text = json.encodeToString(result))))
@@ -292,45 +329,6 @@ class McpServer {
         } catch (e: CliktError) {
             ToolCallResult(listOf(ToolContent(text = e.message ?: captured.toString().trim())), isError = true)
         }
-    }
-
-    private fun resolveTemplateDir(path: String): String {
-        val direct = File(path)
-        if (direct.exists()) return direct.absolutePath
-
-        val working = File(System.getProperty("user.dir"), path)
-        if (working.exists()) return working.absolutePath
-
-        val envTemplate = System.getenv("KICKOFF_TEMPLATE_DIR")
-        if (!envTemplate.isNullOrBlank() && File(envTemplate).exists()) {
-            return File(envTemplate).absolutePath
-        }
-
-        val appHome = System.getProperty("app.home") ?: System.getenv("APP_HOME")
-        if (!appHome.isNullOrBlank()) {
-            val appHomeTemplate = File(appHome, path)
-            if (appHomeTemplate.exists()) return appHomeTemplate.absolutePath
-        }
-
-        try {
-            val codeSourceLocation = McpServer::class.java.protectionDomain?.codeSource?.location
-            if (codeSourceLocation != null) {
-                val jarOrClassFile = File(codeSourceLocation.toURI())
-                val installDir = jarOrClassFile.parentFile?.parentFile
-                if (installDir != null) {
-                    val bundledTemplate = File(installDir, path)
-                    if (bundledTemplate.exists()) return bundledTemplate.absolutePath
-
-                    val repoTemplate = File(installDir, "../../$path").canonicalFile
-                    if (repoTemplate.exists()) return repoTemplate.absolutePath
-                }
-            }
-        } catch (_: Exception) {}
-
-        val repoTemplate = File("../$path")
-        if (repoTemplate.exists()) return repoTemplate.absolutePath
-
-        return path
     }
 
     fun start(input: InputStream = System.`in`, output: PrintStream = System.out) {

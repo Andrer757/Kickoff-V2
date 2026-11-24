@@ -1,5 +1,6 @@
 package eu.andrer757.kickoff.generator
 
+import eu.andrer757.kickoff.cli.ProjectUtils
 import eu.andrer757.kickoff.model.GenerationResult
 import eu.andrer757.kickoff.model.ProjectConfig
 import java.io.File
@@ -10,20 +11,6 @@ class ProjectGenerator {
 
     private val textExtensions = setOf(
         "kt", "kts", "xml", "properties", "toml", "md", "gradle", "json", "yaml", "yml", "txt", "pro", "sh", "ps1", "mdc", "gitignore", "api"
-    )
-
-    private val reservedKeywords = setOf(
-        // Kotlin keywords
-        "as", "break", "class", "continue", "do", "else", "false", "for", "fun",
-        "if", "in", "interface", "is", "null", "object", "package", "return",
-        "super", "this", "throw", "true", "try", "typealias", "typeof", "val",
-        "var", "when", "while",
-        // Java keywords
-        "abstract", "assert", "boolean", "byte", "case", "catch", "char", "const",
-        "default", "double", "enum", "extends", "final", "finally", "float",
-        "goto", "implements", "import", "instanceof", "int", "long", "native",
-        "new", "private", "protected", "public", "short", "static", "strictfp",
-        "switch", "synchronized", "throws", "transient", "void", "volatile"
     )
 
     private val validAiEnvironments = setOf(
@@ -51,17 +38,21 @@ class ProjectGenerator {
             return "targetSdk (${config.targetSdk}) cannot be less than minSdk (${config.minSdk})."
         }
 
-        if (config.targetSdk > 35) {
-            return "targetSdk (${config.targetSdk}) cannot exceed template compileSdk (35)."
+        if (config.targetSdk > ProjectConfig.TEMPLATE_COMPILE_SDK) {
+            return "targetSdk (${config.targetSdk}) cannot exceed template compileSdk (${ProjectConfig.TEMPLATE_COMPILE_SDK})."
         }
 
         if (config.projectType !in setOf("app", "sdk")) {
             return "Invalid project type '${config.projectType}'. Allowed values are: app, sdk."
         }
 
-        val invalidAi = config.aiEnvironments.filter { it !in validAiEnvironments }
+        val normalizedAi = config.aiEnvironments.map { it.lowercase() }.toSet()
+        val invalidAi = normalizedAi.filter { it !in validAiEnvironments }
         if (invalidAi.isNotEmpty()) {
             return "Invalid AI environment(s): ${invalidAi.joinToString(", ")}. Allowed values are: ${validAiEnvironments.joinToString(", ")}."
+        }
+        if ("none" in normalizedAi && normalizedAi.size > 1) {
+            return "AI environment 'none' cannot be combined with other environments (${normalizedAi.sorted().joinToString(", ")})."
         }
 
         return null
@@ -78,7 +69,7 @@ class ProjectGenerator {
             if (!segmentRegex.matches(segment)) {
                 return "Package segment '$segment' in '$pkg' is not a valid Java/Kotlin identifier."
             }
-            if (segment.lowercase() in reservedKeywords) {
+            if (ProjectUtils.isReservedKeyword(segment)) {
                 return "Package segment '$segment' in '$pkg' is a reserved keyword in Java/Kotlin."
             }
         }
@@ -223,11 +214,16 @@ class ProjectGenerator {
     }
 
     private fun embedQualityVerifier(templateDir: File, targetDir: File) {
-        val repoRoot = templateDir.parentFile?.parentFile
-        val qvSource = listOfNotNull(
-            repoRoot?.let { File(it, "quality-verifier") },
-            File(System.getProperty("user.dir"), "quality-verifier")
-        ).firstOrNull { it.exists() && File(it, "build.gradle.kts").exists() } ?: return
+        val qvSource = ProjectUtils.resolveQualityVerifierDir(templateDir)
+        if (qvSource == null) {
+            val settingsFile = File(targetDir, "settings.gradle.kts")
+            if (settingsFile.exists() && settingsFile.readText(Charsets.UTF_8).contains("build-logic/quality-verifier")) {
+                System.err.println(
+                    "Warning: quality-verifier source directory could not be resolved; generated project will rely on mavenLocal/Maven Central for eu.andrer757.quality-verifier."
+                )
+            }
+            return
+        }
 
         val targetQvDir = File(targetDir, "build-logic/quality-verifier")
         targetQvDir.mkdirs()
@@ -292,24 +288,24 @@ class ProjectGenerator {
     }
 
     private fun initializeGitRepository(targetDir: File) {
+        fun runGit(vararg args: String): Int = ProcessBuilder("git", *args)
+            .directory(targetDir)
+            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .start()
+            .waitFor()
+
         try {
-            ProcessBuilder("git", "init")
-                .directory(targetDir)
-                .redirectErrorStream(true)
-                .start()
-                .waitFor()
-
-            ProcessBuilder("git", "add", ".")
-                .directory(targetDir)
-                .redirectErrorStream(true)
-                .start()
-                .waitFor()
-
-            ProcessBuilder("git", "commit", "-m", "chore: initial project scaffolded by Kickoff")
-                .directory(targetDir)
-                .redirectErrorStream(true)
-                .start()
-                .waitFor()
+            if (runGit("init") != 0) return
+            if (runGit("add", ".") != 0) return
+            val commitExit = runGit("commit", "-m", "chore: initial project scaffolded by Kickoff")
+            if (commitExit != 0) {
+                runGit(
+                    "-c", "user.name=Kickoff",
+                    "-c", "user.email=kickoff@localhost",
+                    "commit", "-m", "chore: initial project scaffolded by Kickoff"
+                )
+            }
         } catch (_: Exception) {
             // Non-fatal if git is missing or restricted
         }
@@ -351,44 +347,7 @@ class ProjectGenerator {
             rawReplaced.replace("\${configs.packageName}", config.packageName.replace('.', '/'))
         } else {
             val substituted = rawReplaced.replace("\${configs.packageName}", config.packageName)
-            if (ext == "kt" || ext == "kts") sortKotlinImports(substituted) else substituted
+            if (ext == "kt" || ext == "kts") ProjectUtils.sortKotlinImports(substituted) else substituted
         }
-    }
-
-    /**
-     * Sorts contiguous Kotlin `import` blocks to match Ktlint's default ordering
-     * (`*`, `java.**`, `javax.**`, `kotlin.**`, aliases) so arbitrary user package
-     * names remain compliant with Spotless/Ktlint.
-     */
-    private fun sortKotlinImports(content: String): String {
-        val importOrder = compareBy<String>(
-            { line ->
-                val target = line.removePrefix("import ").trim()
-                when {
-                    target.contains(" as ") -> 4
-                    target.startsWith("kotlin.") -> 3
-                    target.startsWith("javax.") -> 2
-                    target.startsWith("java.") -> 1
-                    else -> 0
-                }
-            },
-            { it }
-        )
-        val lines = content.split("\n")
-        val result = ArrayList<String>(lines.size)
-        var i = 0
-        while (i < lines.size) {
-            if (lines[i].startsWith("import ")) {
-                val start = i
-                while (i < lines.size && lines[i].startsWith("import ")) {
-                    i++
-                }
-                result.addAll(lines.subList(start, i).sortedWith(importOrder))
-            } else {
-                result.add(lines[i])
-                i++
-            }
-        }
-        return result.joinToString("\n")
     }
 }

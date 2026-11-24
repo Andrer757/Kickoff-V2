@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.bcv)
     alias(libs.plugins.dokka) apply false
-    alias(libs.plugins.quality.verifier) apply false
+    alias(libs.plugins.quality.verifier)
 }
 
 apiValidation {
@@ -13,8 +13,4 @@ apiValidation {
         listOf(
             "${configs.packageName}.sdk.core.InternalSdkApi",
         )
-}
-
-allprojects {
-    apply(plugin = "eu.andrer757.quality-verifier")
 }

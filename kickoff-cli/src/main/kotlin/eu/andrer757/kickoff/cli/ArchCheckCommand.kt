@@ -1,6 +1,7 @@
 package eu.andrer757.kickoff.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
@@ -8,7 +9,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
-import kotlin.system.exitProcess
 
 @Serializable
 data class ArchViolation(
@@ -39,7 +39,7 @@ object ArchChecker {
             )
         }
 
-        val settingsText = settingsFile.readText()
+        val settingsText = ProjectUtils.stripKotlinComments(settingsFile.readText())
         val includeBlockRegex = Regex("""include\(([^)]+)\)""")
         val stringLiteralRegex = Regex(""""([^"]+)"""")
         val modules = includeBlockRegex.findAll(settingsText)
@@ -54,11 +54,11 @@ object ArchChecker {
             val buildFile = File(projectRoot, "$moduleRelPath/build.gradle.kts")
             if (!buildFile.exists()) continue
 
-            val content = buildFile.readText()
+            val content = ProjectUtils.stripKotlinComments(buildFile.readText())
             val depRegex = Regex("""(?:implementation|api|compileOnly|runtimeOnly|ksp)\s*\(\s*project\("([^"]+)"\)\s*\)""")
             val dependencies = depRegex.findAll(content).map { it.groupValues[1] }.toSet()
 
-            if (module == ":sdk-core" && (content.contains("kickoff.android.hilt") || content.contains("libs.hilt.") || content.contains("com.google.dagger:hilt"))) {
+            if (module == ":sdk-core" && (content.contains("kickoff.android.hilt") || content.contains("libs.hilt.") || content.contains("com.google.dagger:hilt") || content.contains("androidx.hilt:"))) {
                 violations.add(
                     ArchViolation(
                         module = module,
@@ -68,7 +68,7 @@ object ArchChecker {
                     )
                 )
             }
-            if (module == ":core:model" && (content.contains("libs.androidx.") || content.contains("androidx."))) {
+            if (module == ":core:model" && (content.contains("libs.androidx.") || content.contains("androidx.") || content.contains("com.google.android."))) {
                 violations.add(
                     ArchViolation(
                         module = module,
@@ -185,7 +185,7 @@ class ArchCheckCommand : CliktCommand(name = "arch-check") {
             } else {
                 echo(" Error: $errorMsg", err = true)
             }
-            exitProcess(1)
+            throw ProgramResult(1)
         }
 
         val result = ArchChecker.check(root)
@@ -205,7 +205,7 @@ class ArchCheckCommand : CliktCommand(name = "arch-check") {
         }
 
         if (result.status != "success") {
-            exitProcess(1)
+            throw ProgramResult(1)
         }
     }
 }

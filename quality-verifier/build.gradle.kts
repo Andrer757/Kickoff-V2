@@ -30,14 +30,14 @@ publishing {
             url.set("https://github.com/Andrer757/Kickoff-V2")
             licenses {
                 license {
-                    name.set("The Apache Software License, Version 2.0")
-                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    name.set("The MIT License")
+                    url.set("https://opensource.org/licenses/MIT")
                 }
             }
             developers {
                 developer {
                     id.set("andrer757")
-                    name.set("André Santos")
+                    name.set("André Rosa")
                     url.set("https://github.com/Andrer757")
                 }
             }

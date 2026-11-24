@@ -83,10 +83,11 @@ Run the CLI tool from the `Kickoff-V2` root or directly via `kickoff`:
 - `--type` (Optional): Project archetype: `app` (Now-in-Android App) or `sdk` (Android SDK + Sample) (Default: `app`).
 - `-t, --template` (Optional): Custom template path.
 - `--min-sdk` (Optional): Minimum SDK API level (Default: `26`).
-- `--target-sdk` (Optional): Target SDK API level (Default: `35`).
+- `--target-sdk` (Optional): Target SDK API level (Default: `37`).
 - `--ai` (Optional): Target AI environment to install (Default: `all`):
-  - `copilot`, `claude`, `cursor`, `generic`, `all`, `none`.
+  - `copilot`, `claude`, `cursor`, `codex`, `generic`, `antigravity`, `all`, `none`.
 - `--git / --no-git` (Optional): Automatically initialize git repository with initial commit (Default: `true`).
+- `--engram` (Optional): Opt in to Engram MCP memory configs (Default: `false`).
 - `--json` (Recommended for AI): Prints machine-readable JSON status and metadata.
 
 ---

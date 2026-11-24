@@ -6,6 +6,7 @@ import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.tasks.TaskProvider
 import java.io.File
 import java.io.InputStream
@@ -17,8 +18,43 @@ class QualityVerifierPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("qualityVerifier", QualityVerifierExtension::class.java)
 
+        // Apply Kover eagerly so its AGP androidComponents.onVariants callbacks register
+        // before AGP finalizes variants regardless of plugin application order.
+        project.pluginManager.apply("org.jetbrains.kotlinx.kover")
+
         val verifyArchTask = project.tasks.register("verifyArchitecture", VerifyArchitectureTask::class.java) {
             abortOnError.set(extension.abortOnError)
+            modulePath.set(project.path)
+            dependentProjectPaths.set(
+                project.provider {
+                    val paths = mutableSetOf<String>()
+                    for (config in project.configurations) {
+                        if (config.name in ARCH_CHECK_CONFIGURATIONS) {
+                            for (dep in config.dependencies) {
+                                if (dep is ProjectDependency) {
+                                    paths.add(dep.path)
+                                }
+                            }
+                        }
+                    }
+                    paths
+                }
+            )
+            externalDeps.set(
+                project.provider {
+                    val deps = mutableSetOf<String>()
+                    for (config in project.configurations) {
+                        if (config.name in ARCH_CHECK_CONFIGURATIONS) {
+                            for (dep in config.dependencies) {
+                                if (dep !is ProjectDependency && dep.group != null) {
+                                    deps.add("${dep.group}:${dep.name}")
+                                }
+                            }
+                        }
+                    }
+                    deps
+                }
+            )
         }
 
         project.afterEvaluate {
@@ -31,9 +67,7 @@ class QualityVerifierPlugin : Plugin<Project> {
             if (extension.enableLint.get()) {
                 configureLint(project, extension)
             }
-            if (extension.enableKover.get()) {
-                configureKover(project, extension)
-            }
+            configureKover(project, extension)
             wireCheckLifecycle(project, extension, verifyArchTask)
         }
     }
@@ -47,6 +81,7 @@ class QualityVerifierPlugin : Plugin<Project> {
         if (detektExt != null) {
             detektExt.buildUponDefaultConfig = true
             detektExt.allRules = false
+            detektExt.ignoreFailures = !extension.abortOnError.get()
 
             val configFile = if (extension.detektConfigFile.isPresent) {
                 extension.detektConfigFile.get().asFile
@@ -112,11 +147,14 @@ class QualityVerifierPlugin : Plugin<Project> {
     }
 
     private fun configureKover(project: Project, extension: QualityVerifierExtension) {
-        project.pluginManager.apply("org.jetbrains.kotlinx.kover")
+        val koverExt = project.extensions.findByType(KoverProjectExtension::class.java) ?: return
+        if (!extension.enableKover.get()) {
+            koverExt.disable()
+            return
+        }
         val minCov = extension.minCoveragePercent.getOrElse(0)
         if (minCov > 0) {
-            val koverExt = project.extensions.findByType(KoverProjectExtension::class.java)
-            koverExt?.reports {
+            koverExt.reports {
                 verify {
                     rule {
                         minBound(minCov)
@@ -145,7 +183,7 @@ class QualityVerifierPlugin : Plugin<Project> {
     }
 
     private fun extractResource(project: Project, resourcePath: String, targetFileName: String): File {
-        val targetDir = File(project.rootProject.projectDir, ".gradle/quality-verifier")
+        val targetDir = project.layout.buildDirectory.dir("quality-verifier").get().asFile
         targetDir.mkdirs()
         val targetFile = File(targetDir, targetFileName)
 
@@ -156,5 +194,9 @@ class QualityVerifierPlugin : Plugin<Project> {
             }
         }
         return targetFile
+    }
+
+    private companion object {
+        val ARCH_CHECK_CONFIGURATIONS = setOf("implementation", "api", "compileOnly", "runtimeOnly", "ksp")
     }
 }

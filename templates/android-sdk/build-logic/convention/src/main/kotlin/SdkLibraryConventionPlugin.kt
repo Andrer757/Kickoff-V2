@@ -13,6 +13,7 @@ class SdkLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             with(pluginManager) {
+                apply("eu.andrer757.quality-verifier")
                 apply("com.android.library")
             }
 
